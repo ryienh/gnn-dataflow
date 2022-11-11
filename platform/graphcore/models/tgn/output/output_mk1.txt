@@ -1,0 +1,169 @@
+(tf1_graph_env) sraskar@graphcore:~/workspace/examples/gnn/tgn/tensorflow1$ python run_tgn.py 
+2022-11-11 16:53:54.774710: I tensorflow/compiler/plugin/poplar/driver/poplar_platform.cc:47] Poplar version: 2.4.0 (10a96ee536) Poplar package: 969064e2df
+WARNING:tensorflow:From /home/sraskar/workspace/tf1_graph_env/lib/python3.6/site-packages/tensorflow_core/python/compat/v2_compat.py:68: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+Instructions for updating:
+non-resource variables are not supported in the long term
+2022-11-11 16:53:57.653988: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2500000000 Hz
+2022-11-11 16:53:57.802849: I tensorflow/compiler/plugin/poplar/driver/poplar_executor.cc:1610] Device /device:IPU:0 attached to IPU: 0
+WARNING:tensorflow:From /home/sraskar/workspace/tf1_graph_env/lib/python3.6/site-packages/tensorflow_core/python/ops/resource_variable_ops.py:1630: calling BaseResourceVariable.__init__ (from tensorflow.python.ops.resource_variable_ops) with constraint is deprecated and will be removed in a future version.
+Instructions for updating:
+If using Keras pass *_constraint arguments to layers.
+WARNING:tensorflow:From /home/sraskar/workspace/tf1_graph_env/lib/python3.6/site-packages/tensorflow_core/python/ops/nn_impl.py:183: where (from tensorflow.python.ops.array_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use tf.where in 2.0, which has the same broadcast rule as np.where
+2022-11-11 16:53:59.613316: I tensorflow/compiler/jit/xla_compilation_cache.cc:251] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+0it [00:00, ?it/s]Compiling module cluster_4864633771068341742_f15n_0__.1871:
+[##################################################] 100% Compilation Finished [Elapsed: 00:00:50.0]
+552it [00:54, 10.06it/s]
+n_epoch: 1, part: train, loss: 1.1674230968548154, count: 110232, duration: 54.84964299201965, throughput: 2009.71226040684 samples/sec, compile_time: 54.84851884841919, 
+
+0it [00:00, ?it/s]Compiling module cluster_1_11847034031334256136_f15n_0__.511:
+[##################################################] 100% Compilation Finished [Elapsed: 00:00:27.7]
+119it [00:29,  4.00it/s]
+n_epoch: 1, part: val, loss: 0.9143303792465854, average_precision: 0.8610370646041756, roc_auc: 0.8700279428262994, count: 23621, duration: 29.765246152877808, 
+
+552it [00:03, 173.96it/s]
+n_epoch: 2, part: train, loss: 0.7834150537332626, count: 110232, duration: 3.173447847366333, throughput: 34735.721304347986 samples/sec, 
+
+119it [00:01, 89.44it/s]
+n_epoch: 2, part: val, loss: 0.7006667206468159, average_precision: 0.9306732637373721, roc_auc: 0.9297221561322552, count: 23621, duration: 1.3307156562805176, 
+
+552it [00:03, 167.81it/s]
+n_epoch: 3, part: train, loss: 0.6791264053456574, count: 110232, duration: 3.2895610332489014, throughput: 33509.63818145988 samples/sec, 
+
+119it [00:01, 92.13it/s]
+n_epoch: 3, part: val, loss: 0.6200047242621767, average_precision: 0.949691174843582, roc_auc: 0.9453982504974391, count: 23621, duration: 1.2918884754180908, 
+
+552it [00:03, 169.73it/s]
+n_epoch: 4, part: train, loss: 0.6132522982777233, count: 110232, duration: 3.252354383468628, throughput: 33892.98551237145 samples/sec, 
+
+119it [00:01, 89.21it/s]
+n_epoch: 4, part: val, loss: 0.5680885009713946, average_precision: 0.9564256460353684, roc_auc: 0.9525906820202363, count: 23621, duration: 1.3340873718261719, 
+
+552it [00:03, 169.16it/s]
+n_epoch: 5, part: train, loss: 0.5847658854591906, count: 110232, duration: 3.263432264328003, throughput: 33777.93411094398 samples/sec, 
+
+119it [00:01, 94.04it/s]
+n_epoch: 5, part: val, loss: 0.5373892773015801, average_precision: 0.9619637220066648, roc_auc: 0.9576255445366411, count: 23621, duration: 1.2656364440917969, 
+
+552it [00:03, 175.46it/s]
+n_epoch: 6, part: train, loss: 0.5590743769390921, count: 110232, duration: 3.1463961601257324, throughput: 35034.36769881992 samples/sec, 
+
+119it [00:01, 91.60it/s]
+n_epoch: 6, part: val, loss: 0.5303711322506489, average_precision: 0.9628300617816578, roc_auc: 0.9589984574107785, count: 23621, duration: 1.2993054389953613, 
+
+552it [00:03, 173.44it/s]
+n_epoch: 7, part: train, loss: 0.5385174935732138, count: 110232, duration: 3.182943344116211, throughput: 34632.096170912984 samples/sec, 
+
+119it [00:01, 89.86it/s]
+n_epoch: 7, part: val, loss: 0.49207980283244057, average_precision: 0.9673298698726246, roc_auc: 0.963626134054443, count: 23621, duration: 1.3245084285736084, 
+
+552it [00:03, 172.59it/s]
+n_epoch: 8, part: train, loss: 0.5161666310882956, count: 110232, duration: 3.198472261428833, throughput: 34463.95372231766 samples/sec, 
+
+119it [00:01, 92.75it/s]
+n_epoch: 8, part: val, loss: 0.47904130743407947, average_precision: 0.9685569805604183, roc_auc: 0.9653612373523554, count: 23621, duration: 1.2831735610961914, 
+
+552it [00:03, 175.49it/s]
+n_epoch: 9, part: train, loss: 0.5037031715637247, count: 110232, duration: 3.1457512378692627, throughput: 35041.55022590545 samples/sec, 
+
+119it [00:01, 92.32it/s]
+n_epoch: 9, part: val, loss: 0.4728690797784711, average_precision: 0.9688501631667386, roc_auc: 0.9657433618390416, count: 23621, duration: 1.289207935333252, 
+
+552it [00:03, 173.96it/s]
+n_epoch: 10, part: train, loss: 0.494122401715813, count: 110232, duration: 3.173412561416626, throughput: 34736.10753932099 samples/sec, 
+
+119it [00:01, 94.22it/s]
+n_epoch: 10, part: val, loss: 0.4626164745403322, average_precision: 0.9698870317925694, roc_auc: 0.9669994893315269, count: 23621, duration: 1.263120174407959, 
+
+552it [00:03, 175.12it/s]
+n_epoch: 11, part: train, loss: 0.483275685032477, count: 110232, duration: 3.152462959289551, throughput: 34966.94534512223 samples/sec, 
+
+119it [00:01, 94.29it/s]
+n_epoch: 11, part: val, loss: 0.4552102920430807, average_precision: 0.9713351126633122, roc_auc: 0.9682768537530165, count: 23621, duration: 1.2621889114379883, 
+
+552it [00:03, 174.39it/s]
+n_epoch: 12, part: train, loss: 0.48079420881924034, count: 110232, duration: 3.1654369831085205, throughput: 34823.628013516805 samples/sec, 
+
+119it [00:01, 91.22it/s]
+n_epoch: 12, part: val, loss: 0.45116421492122677, average_precision: 0.9714823124481151, roc_auc: 0.9685265081918624, count: 23621, duration: 1.3047599792480469, 
+
+552it [00:03, 174.46it/s]
+n_epoch: 13, part: train, loss: 0.47100795084458236, count: 110232, duration: 3.1643354892730713, throughput: 34835.74999353912 samples/sec, 
+
+119it [00:01, 94.27it/s]
+n_epoch: 13, part: val, loss: 0.44949359812243345, average_precision: 0.9718939938138018, roc_auc: 0.9687518352313619, count: 23621, duration: 1.2625539302825928, 
+
+552it [00:03, 171.88it/s]
+n_epoch: 14, part: train, loss: 0.46643239159794797, count: 110232, duration: 3.2117767333984375, throughput: 34321.190154261305 samples/sec, 
+
+119it [00:01, 95.00it/s]
+n_epoch: 14, part: val, loss: 0.443038382945459, average_precision: 0.972582580515077, roc_auc: 0.9695790128487363, count: 23621, duration: 1.252873182296753, 
+
+552it [00:03, 174.89it/s]
+n_epoch: 15, part: train, loss: 0.4602693335845081, count: 110232, duration: 3.1566061973571777, throughput: 34921.04909769553 samples/sec, 
+
+119it [00:01, 89.26it/s]
+n_epoch: 15, part: val, loss: 0.44627739602819655, average_precision: 0.9719922897881452, roc_auc: 0.9691424860293805, count: 23621, duration: 1.3333978652954102, 
+
+552it [00:03, 167.55it/s]
+n_epoch: 16, part: train, loss: 0.45310171370807706, count: 110232, duration: 3.294736862182617, throughput: 33456.99660123273 samples/sec, 
+
+119it [00:01, 96.21it/s]
+n_epoch: 16, part: val, loss: 0.4411521392572916, average_precision: 0.9728133724288868, roc_auc: 0.9699903745607724, count: 23621, duration: 1.2370243072509766, 
+
+552it [00:03, 171.96it/s]
+n_epoch: 17, part: train, loss: 0.45267891491071105, count: 110232, duration: 3.2104201316833496, throughput: 34335.69298676215 samples/sec, 
+
+119it [00:01, 92.95it/s]
+n_epoch: 17, part: val, loss: 0.4386218701504686, average_precision: 0.9729377901442657, roc_auc: 0.970270675987468, count: 23621, duration: 1.2804646492004395, 
+
+552it [00:03, 175.44it/s]
+n_epoch: 18, part: train, loss: 0.45252751193222024, count: 110232, duration: 3.1468448638916016, throughput: 35029.37220225074 samples/sec, 
+
+119it [00:01, 95.72it/s]
+n_epoch: 18, part: val, loss: 0.43286850113180536, average_precision: 0.9735645851576457, roc_auc: 0.9706978583675541, count: 23621, duration: 1.243359088897705, 
+
+552it [00:03, 174.38it/s]
+n_epoch: 19, part: train, loss: 0.4411398463156116, count: 110232, duration: 3.1657049655914307, throughput: 34820.68013227063 samples/sec, 
+
+119it [00:01, 93.16it/s]
+n_epoch: 19, part: val, loss: 0.4321699081491311, average_precision: 0.9736081834798771, roc_auc: 0.9710266516023878, count: 23621, duration: 1.277498722076416, 
+
+552it [00:02, 187.80it/s]
+n_epoch: 20, part: train, loss: 0.44123503794837254, count: 110232, duration: 2.9396705627441406, throughput: 37498.07934161847 samples/sec, 
+
+119it [00:01, 90.93it/s]
+n_epoch: 20, part: val, loss: 0.4358659239345418, average_precision: 0.9730932346895868, roc_auc: 0.9705427421574019, count: 23621, duration: 1.3089277744293213, 
+
+552it [00:03, 175.08it/s]
+n_epoch: 21, part: train, loss: 0.43779277739222733, count: 110232, duration: 3.153003454208374, throughput: 34960.951232981126 samples/sec, 
+
+119it [00:01, 92.69it/s]
+n_epoch: 21, part: val, loss: 0.4299916292871015, average_precision: 0.9738621440906307, roc_auc: 0.9712972651454213, count: 23621, duration: 1.2840039730072021, 
+
+552it [00:02, 184.24it/s]
+n_epoch: 22, part: train, loss: 0.4339299018207054, count: 110232, duration: 2.9963183403015137, throughput: 36789.14837497126 samples/sec, 
+
+119it [00:01, 97.02it/s]
+n_epoch: 22, part: val, loss: 0.4267630023357956, average_precision: 0.9742601480515584, roc_auc: 0.9714767749036872, count: 23621, duration: 1.2267005443572998, 
+
+552it [00:03, 172.99it/s]
+n_epoch: 23, part: train, loss: 0.4311354316209222, count: 110232, duration: 3.191141128540039, throughput: 34543.129106430846 samples/sec, 
+
+119it [00:01, 93.03it/s]
+n_epoch: 23, part: val, loss: 0.4265067094589924, average_precision: 0.9740503546379663, roc_auc: 0.97146615352864, count: 23621, duration: 1.2793810367584229, 
+
+552it [00:03, 170.37it/s]
+n_epoch: 24, part: train, loss: 0.42309216832169877, count: 110232, duration: 3.2402281761169434, throughput: 34019.82638522109 samples/sec, 
+
+119it [00:01, 94.26it/s]
+n_epoch: 24, part: val, loss: 0.42604077538095075, average_precision: 0.9742776725149168, roc_auc: 0.9715793938656281, count: 23621, duration: 1.2626597881317139, 
+
+552it [00:03, 174.17it/s]
+n_epoch: 25, part: train, loss: 0.42458770018857955, count: 110232, duration: 3.1695473194122314, throughput: 34778.46799284943 samples/sec, 
+
+119it [00:01, 91.03it/s]
+n_epoch: 25, part: val, loss: 0.4289455330647914, average_precision: 0.9744143982710035, roc_auc: 0.9716011372295841, count: 23621, duration: 1.307492971420288, 
+
+(tf1_graph_env) sraskar@graphcore:~/workspace/examples/gnn/tgn/tensorflow1$ 
