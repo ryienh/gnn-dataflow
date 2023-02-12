@@ -1,0 +1,2 @@
+"benchmark name","Variant name","throughput","latency","total_compiling_time"
+"pytorch_tgn_train_real_1ipu","pytorch_tgn_train_real_1ipu","31837.50231250001","","82.688456"

@@ -1,0 +1,52 @@
+Epoch 1: Loss 0.8257, Time 61.8918, Throughput: 1781.1744 samples/s
+Validation APS 0.9501, AUCS 0.9489
+Epoch 2: Loss 0.5803, Time 3.4183, Throughput: 32249.8551 samples/s
+Validation APS 0.9670, AUCS 0.9647
+Epoch 3: Loss 0.5349, Time 3.4258, Throughput: 32179.3867 samples/s
+Validation APS 0.9732, AUCS 0.9703
+Epoch 4: Loss 0.4378, Time 3.4082, Throughput: 32345.5126 samples/s
+Validation APS 0.9742, AUCS 0.9708
+Epoch 5: Loss 0.4584, Time 3.4213, Throughput: 32221.5742 samples/s
+Validation APS 0.9752, AUCS 0.9721
+Epoch 6: Loss 0.4215, Time 3.4892, Throughput: 31594.8584 samples/s
+Validation APS 0.9755, AUCS 0.9730
+Epoch 7: Loss 0.4345, Time 3.4430, Throughput: 32018.8981 samples/s
+Validation APS 0.9764, AUCS 0.9733
+Epoch 8: Loss 0.4243, Time 3.4666, Throughput: 31800.3999 samples/s
+Validation APS 0.9777, AUCS 0.9756
+Epoch 9: Loss 0.4475, Time 3.4180, Throughput: 32252.8111 samples/s
+Validation APS 0.9802, AUCS 0.9779
+Epoch 10: Loss 0.3834, Time 3.4648, Throughput: 31817.0655 samples/s
+Validation APS 0.9766, AUCS 0.9737
+Epoch 11: Loss 0.3822, Time 3.4839, Throughput: 31642.3348 samples/s
+Validation APS 0.9814, AUCS 0.9790
+Epoch 12: Loss 0.3675, Time 3.5448, Throughput: 31099.3944 samples/s
+Validation APS 0.9815, AUCS 0.9790
+Epoch 13: Loss 0.3627, Time 3.5338, Throughput: 31195.9860 samples/s
+Validation APS 0.9776, AUCS 0.9747
+Epoch 14: Loss 0.3815, Time 3.7880, Throughput: 29102.3986 samples/s
+Validation APS 0.9755, AUCS 0.9729
+Epoch 15: Loss 0.3859, Time 3.4763, Throughput: 31711.4469 samples/s
+Validation APS 0.9793, AUCS 0.9765
+Epoch 16: Loss 0.3513, Time 3.4374, Throughput: 32071.1439 samples/s
+Validation APS 0.9770, AUCS 0.9743
+Epoch 17: Loss 0.3366, Time 3.4046, Throughput: 32380.1533 samples/s
+Validation APS 0.9811, AUCS 0.9795
+Epoch 18: Loss 0.3351, Time 3.4274, Throughput: 32164.2725 samples/s
+Validation APS 0.9831, AUCS 0.9809
+Epoch 19: Loss 0.3173, Time 3.4202, Throughput: 32232.2074 samples/s
+Validation APS 0.9793, AUCS 0.9768
+Epoch 20: Loss 0.3252, Time 3.4123, Throughput: 32306.2051 samples/s
+Validation APS 0.9778, AUCS 0.9754
+Epoch 21: Loss 0.3100, Time 3.4639, Throughput: 31825.1420 samples/s
+Validation APS 0.9789, AUCS 0.9760
+Epoch 22: Loss 0.3253, Time 3.4937, Throughput: 31553.9742 samples/s
+Validation APS 0.9808, AUCS 0.9783
+Epoch 23: Loss 0.3256, Time 3.4546, Throughput: 31911.0852 samples/s
+Validation APS 0.9807, AUCS 0.9783
+Epoch 24: Loss 0.3229, Time 3.4086, Throughput: 32341.3588 samples/s
+Validation APS 0.9825, AUCS 0.9807
+Epoch 25: Loss 0.3004, Time 3.4361, Throughput: 32082.5908 samples/s
+Validation APS 0.9825, AUCS 0.9805
+Training finished 
+APS 0.9825, AUCS 0.9805
