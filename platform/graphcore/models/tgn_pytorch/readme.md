@@ -41,13 +41,10 @@ Either run these two commands each time or add them to your `bash_profile`
 python3 -m examples_utils benchmark --spec benchmarks.yml
 ```
 
-* Output of this is in [log_2023-02-10-22.21.51.003711](./log_2023-02-10-22.21.51.003711/)
+* Output of this is in [log_benchmark_run](./log_benchmark_run/)
 
 Or to run a specific benchmark in the `benchmarks.yml` file provided:
 
-```bash
-python3 -m examples_utils benchmark --spec <path to benchmarks.yml file> --benchmark <name of benchmark>
-```
 
 ## Profiling 
 
@@ -55,8 +52,10 @@ python3 -m examples_utils benchmark --spec <path to benchmarks.yml file> --bench
 
   * Enabling instrumentation 
     `PVTI_OPTIONS='{"enable":"true", "directory": "system_profile"}' python3 linear_net.py`
+  
+  * The output log files are in [log_system_profile](./log_system_profile)
 
-  * The output of this is in shared directory `/lambda_stor/homes/sraskar/gnn-dataflow-share/tgn/system_profile`on Graphcore POD system.
+  * The profiling output files generated for this are in shared directory `/lambda_stor/homes/sraskar/gnn-dataflow-share/tgn/system_profile`on Graphcore POD system.
   
   * Open the `.pvti` file using PopVision System Analyzer on your local system.
 
@@ -65,6 +64,8 @@ python3 -m examples_utils benchmark --spec <path to benchmarks.yml file> --bench
   * Enabling instrumentation 
   `POPLAR_ENGINE_OPTIONS='{"autoReport.all":"true", "autoReport.directory":"./graph_profile"}' python train.py`
 
-  * * The output of this is in shared directory `/lambda_stor/homes/sraskar/gnn-dataflow-share/tgn/graph_profile`on Graphcore POD system.
+  * The output log files are in [log_graph_profile](./log_graph_profile)
+
+  * The profiling output files generated for this are in shared directory `/lambda_stor/homes/sraskar/gnn-dataflow-share/tgn/graph_profile`on Graphcore POD system.
   
-  * * Open the `.pop` file using PopVision Graph Analyzer on your local system. 
+  * Open the `.pop` file using PopVision Graph Analyzer on your local system. 
