@@ -49,12 +49,14 @@ python3 train.py
   * The output of this is in shared directory `/lambda_stor/homes/sraskar/gnn-dataflow-share/schnet/system_profile`on Graphcore POD system.
   
   * Open the `.pvti` file using PopVision System Analyzer on your local system.
+    * Create a ssh tunnnel `ssh gc-pod -L 8090:127.0.0.1:22`. 
 
 * PopVision Graph Analyzer
 
   * Enabling instrumentation 
   `POPLAR_ENGINE_OPTIONS='{"autoReport.all":"true", "autoReport.directory":"./graph_profile"}' python train.py`
 
-  * * The output of this is in shared directory `/lambda_stor/homes/sraskar/gnn-dataflow-share/schnet/graph_profile`on Graphcore POD system.
+  * The output of this is in shared directory `/lambda_stor/homes/sraskar/gnn-dataflow-share/schnet/graph_profile`on Graphcore POD system.
   
-  * * Open the `.pop` file using PopVision Graph Analyzer on your local system. 
+  * Open the `.pop` file using PopVision Graph Analyzer on your local system. 
+    * Create a ssh tunnnel `ssh gc-pod -L 8090:127.0.0.1:22`. 

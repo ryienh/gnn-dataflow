@@ -58,6 +58,7 @@ Or to run a specific benchmark in the `benchmarks.yml` file provided:
   * The profiling output files generated for this are in shared directory `/lambda_stor/homes/sraskar/gnn-dataflow-share/tgn/system_profile`on Graphcore POD system.
   
   * Open the `.pvti` file using PopVision System Analyzer on your local system.
+    * Create a ssh tunnnel `ssh gc-pod -L 8090:127.0.0.1:22`. 
 
 * PopVision Graph Analyzer
 
@@ -69,3 +70,4 @@ Or to run a specific benchmark in the `benchmarks.yml` file provided:
   * The profiling output files generated for this are in shared directory `/lambda_stor/homes/sraskar/gnn-dataflow-share/tgn/graph_profile`on Graphcore POD system.
   
   * Open the `.pop` file using PopVision Graph Analyzer on your local system. 
+    * Create a ssh tunnnel `ssh gc-pod -L 8090:127.0.0.1:22`. 
