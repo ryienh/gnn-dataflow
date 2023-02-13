@@ -1,0 +1,28 @@
+{
+  "pytorch_tgn_train_real_1ipu": [
+    {
+      "benchmark_name": "pytorch_tgn_train_real_1ipu",
+      "benchmark_path": "/lambda_stor/homes/sraskar/workspace/graphcore/gc-pod/new_examples/examples/gnn/tgn/pytorch/benchmarks.yml",
+      "command": "python /lambda_stor/homes/sraskar/workspace/graphcore/gc-pod/new_examples/examples/gnn/tgn/pytorch/train.py",
+      "compilation_end_time": "125.907558",
+      "end_time": "2023-02-13 15:56:26.120693",
+      "exitcode": 0,
+      "log_paths": {
+        "err": "/lambda_stor/homes/sraskar/workspace/graphcore/gc-pod/new_examples/examples/gnn/tgn/pytorch/log_2023-02-13-15.50.59.986369/pytorch_tgn_train_real_1ipu/stderr.log",
+        "out": "/lambda_stor/homes/sraskar/workspace/graphcore/gc-pod/new_examples/examples/gnn/tgn/pytorch/log_2023-02-13-15.50.59.986369/pytorch_tgn_train_real_1ipu/stdout.log"
+      },
+      "params": {},
+      "results": {
+        "throughput": {
+          "mean": 24174.801283333334
+        },
+        "total_compiling_time": {
+          "mean": 125.907558
+        }
+      },
+      "start_time": "2023-02-13 15:51:00.003671",
+      "test_duration": "326.117022",
+      "variant_name": "pytorch_tgn_train_real_1ipu"
+    }
+  ]
+}
