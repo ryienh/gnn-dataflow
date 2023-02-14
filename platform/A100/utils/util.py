@@ -6,6 +6,7 @@ import torch
 import itertools
 import random
 import numpy as np
+import pandas as pd
 
 
 def get_config_tgn(attr, fname=os.path.join("..", "configs", "config_tgn.json")):
@@ -321,3 +322,48 @@ def save_tgn():
 
 def load_tgn():
     pass
+
+
+UID = "uid"
+
+def get_children(df, op_id):
+#     return df[df["id"].isin(df[df["id"] == op_id]["cpu_children"].tolist()[0])]
+    return df[df[UID].isin(np.concatenate(df[df[UID] == op_id]["cpu_children"].to_numpy()))]
+
+
+def prof_to_df(prof):
+    """
+    Extract info from `torch.profiler.profiler.profile` object `prof` into a `pandas.DataFrame`
+    
+    Example:
+    
+        with torch.profiler.profile(
+                activities=[torch.profiler.ProfilerActivity.CPU, 
+                            torch.profiler.ProfilerActivity.CUDA],
+                record_shapes=False,
+                profile_memory=True,
+                with_stack=True,
+                with_flops=True,
+                ) as prof:
+            
+            # [code to profile here]
+            
+        df = prof_to_df(prof)
+        df.to_csv("/lus/eagle/projects/datascience/gnn-dataflow/profiling_data/model_XYZ_profile.csv", index=False)
+    """
+#     df = pd.DataFrame.from_dict([e.__dict__ for e in prof.events()])
+    df = pd.DataFrame.from_dict([{**{"FE": e}, **e.__dict__} for e in prof.events()])
+    df[UID] = range(len(df))
+    df["time_range"] = df["time_range"].apply(lambda x: x.elapsed_us())
+#     df["cpu_children"] = df["cpu_children"].apply(lambda x: [c.id for c in x])
+    df["cpu_children"] = df["cpu_children"].apply(lambda x: [df[df["FE"].__eq__(c)][UID].item() for c in x])
+#     df["cpu_parent"] = df["cpu_parent"].apply(lambda x: x.id if x is not None else -1)
+    df["cpu_parent"] = df["cpu_parent"].apply(lambda x: df[df["FE"].__eq__(x)][UID].item() if x is not None else -1)
+    df["input_shapes"] = df["input_shapes"].astype(str)
+    # get operator self time
+    df["children_time"] = df.apply(lambda x: get_children(df, x[UID])["time_range"].sum(), axis=1)
+    df["self_time"] = df["time_range"] - df["children_time"]
+    total_time = df["self_time"].sum()
+    df["percent_self_time"] = 100 * df["self_time"] / total_time
+    return df.drop(columns=["FE"])
+
