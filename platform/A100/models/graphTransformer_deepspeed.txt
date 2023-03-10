@@ -1,0 +1,142 @@
+-------------------------- DeepSpeed Flops Profiler --------------------------
+Profile Summary at step 5:
+Notations:
+data parallel size (dp_size), model parallel size(mp_size),
+number of parameters (params), number of multiply-accumulate operations(MACs),
+number of floating-point operations (flops), floating-point operations per second (FLOPS),
+fwd latency (forward propagation latency), bwd latency (backward propagation latency),
+step (weights update latency), iter latency (sum of fwd, bwd and step latency)
+
+params per gpu:                                               64.07 M 
+params of model = params per GPU * mp_size:                   64.07 M 
+fwd MACs per GPU:                                             411.82 GMACs
+fwd flops per GPU:                                            823.74 G
+fwd flops of model = fwd flops per GPU * mp_size:             823.74 G
+fwd latency:                                                  107.41 ms
+fwd FLOPS per GPU = fwd flops per GPU / fwd latency:          7.67 TFLOPS
+
+----------------------------- Aggregated Profile per GPU -----------------------------
+Top 1 modules in terms of params, MACs or fwd latency at different model depths:
+depth 0:
+    params      - {'GraphTransformer': '64.07 M'}
+    MACs        - {'GraphTransformer': '411.82 GMACs'}
+    fwd latency - {'GraphTransformer': '107.41 ms'}
+depth 1:
+    params      - {'ModuleList': '64.07 M'}
+    MACs        - {'ModuleList': '411.82 GMACs'}
+    fwd latency - {'ModuleList': '105.64 ms'}
+depth 2:
+    params      - {'TransformerConv': '64.07 M'}
+    MACs        - {'TransformerConv': '411.82 GMACs'}
+    fwd latency - {'TransformerConv': '105.11 ms'}
+
+------------------------------ Detailed Profile per GPU ------------------------------
+Each module profile is listed after its name in the following order: 
+params, percentage of total params, MACs, percentage of total MACs, fwd latency, percentage of total fwd latency, fwd FLOPS
+
+Note: 1. A module can have torch.nn.module or torch.nn.functional to compute logits (e.g. CrossEntropyLoss). They are not counted as submodules, thus not to be printed out. However they make up the difference between a parent's MACs (or latency) and the sum of its submodules'.
+2. Number of floating-point operations is a theoretical estimation, thus FLOPS computed using that could be larger than the maximum system throughput.
+3. The fwd latency listed in the top module's profile is directly captured at the module forward function in PyTorch, thus it's less than the fwd latency shown above which is captured in DeepSpeed.
+
+GraphTransformer(
+  64.07 M, 100.00% Params, 411.82 GMACs, 100.00% MACs, 107.41 ms, 100.00% latency, 7.67 TFLOPS, 
+  (convs): ModuleList(
+    64.07 M, 99.99% Params, 411.82 GMACs, 100.00% MACs, 105.11 ms, 97.86% latency, 7.84 TFLOPS, 
+    (0): TransformerConv(9, 256, heads=32)
+    (1): TransformerConv(256, 256, heads=32)
+    (2): TransformerConv(256, 256, heads=32)
+    (3): TransformerConv(256, 256, heads=32)
+    (4): TransformerConv(256, 256, heads=32)
+    (5): TransformerConv(256, 256, heads=32)
+    (6): TransformerConv(256, 256, heads=32)
+    (7): TransformerConv(256, 256, heads=32)
+    (8): TransformerConv(256, 256, heads=32)
+    (9): TransformerConv(256, 256, heads=32)
+    (10): TransformerConv(256, 256, heads=32)
+  )
+  (lns): ModuleList(
+    5.12 k, 0.01% Params, 0 MACs, 0.00% MACs, 530.0 us, 0.49% latency, 155.84 GFLOPS, 
+    (0): LayerNorm(512, 0.00% Params, 0 MACs, 0.00% MACs, 71.76 us, 0.07% latency, 127.89 GFLOPS, (256,), eps=1e-05, elementwise_affine=True)
+    (1): LayerNorm(512, 0.00% Params, 0 MACs, 0.00% MACs, 57.46 us, 0.05% latency, 159.72 GFLOPS, (256,), eps=1e-05, elementwise_affine=True)
+    (2): LayerNorm(512, 0.00% Params, 0 MACs, 0.00% MACs, 58.41 us, 0.05% latency, 157.12 GFLOPS, (256,), eps=1e-05, elementwise_affine=True)
+    (3): LayerNorm(512, 0.00% Params, 0 MACs, 0.00% MACs, 59.13 us, 0.06% latency, 155.22 GFLOPS, (256,), eps=1e-05, elementwise_affine=True)
+    (4): LayerNorm(512, 0.00% Params, 0 MACs, 0.00% MACs, 56.51 us, 0.05% latency, 162.42 GFLOPS, (256,), eps=1e-05, elementwise_affine=True)
+    (5): LayerNorm(512, 0.00% Params, 0 MACs, 0.00% MACs, 58.17 us, 0.05% latency, 157.76 GFLOPS, (256,), eps=1e-05, elementwise_affine=True)
+    (6): LayerNorm(512, 0.00% Params, 0 MACs, 0.00% MACs, 56.98 us, 0.05% latency, 161.06 GFLOPS, (256,), eps=1e-05, elementwise_affine=True)
+    (7): LayerNorm(512, 0.00% Params, 0 MACs, 0.00% MACs, 55.55 us, 0.05% latency, 165.21 GFLOPS, (256,), eps=1e-05, elementwise_affine=True)
+    (8): LayerNorm(512, 0.00% Params, 0 MACs, 0.00% MACs, 56.03 us, 0.05% latency, 163.8 GFLOPS, (256,), eps=1e-05, elementwise_affine=True)
+    (9): LayerNorm(512, 0.00% Params, 0 MACs, 0.00% MACs, 0, 0.00% latency, 0.0 FLOPS, (256,), eps=1e-05, elementwise_affine=True)
+  )
+  (conv_dropout): Dropout(0, 0.00% Params, 0 MACs, 0.00% MACs, 216.72 us, 0.20% latency, 0.0 FLOPS, p=0.0, inplace=False)
+  (ReLU): ReLU(0, 0.00% Params, 0 MACs, 0.00% MACs, 430.11 us, 0.40% latency, 42.68 GFLOPS, )
+  (post_mp): Sequential(
+    257, 0.00% Params, 131.07 KMACs, 0.00% MACs, 109.67 us, 0.10% latency, 2.39 GFLOPS, 
+    (0): Linear(257, 0.00% Params, 131.07 KMACs, 0.00% MACs, 72.96 us, 0.07% latency, 3.59 GFLOPS, in_features=256, out_features=1, bias=True)
+  )
+)
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg     Self CUDA   Self CUDA %    CUDA total  CUDA time avg    # of Calls  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                                            model_train         4.77%       5.040ms        99.93%     105.515ms     105.515ms       0.000us         0.00%     101.656ms     101.656ms             1  
+                                     aten::index_select         1.69%       1.788ms         3.76%       3.966ms      79.320us      40.068ms        39.42%      40.068ms     801.360us            50  
+void at::native::(anonymous namespace)::indexSelectL...         0.00%       0.000us         0.00%       0.000us       0.000us      40.068ms        39.42%      40.068ms     801.360us            50  
+                                           aten::linear         0.34%     362.000us         5.40%       5.698ms     138.976us       0.000us         0.00%      20.176ms     492.098us            41  
+                                            aten::addmm         3.33%       3.511ms         4.44%       4.683ms     114.220us      20.176ms        19.85%      20.176ms     492.098us            41  
+                                             aten::mul_         0.28%     299.000us         0.98%       1.035ms     103.500us       7.243ms         7.13%      14.515ms       1.452ms            10  
+void cutlass::Kernel<cutlass_80_tensorop_s1688gemm_2...         0.00%       0.000us         0.00%       0.000us       0.000us      13.422ms        13.20%      13.422ms     497.111us            27  
+                                              aten::mul         0.35%     369.000us         0.44%     460.000us      46.000us      10.722ms        10.55%      10.722ms       1.072ms            10  
+void at::native::vectorized_elementwise_kernel<4, at...         0.00%       0.000us         0.00%       0.000us       0.000us      10.722ms        10.55%      10.722ms       1.072ms            10  
+                                     aten::scatter_add_         0.74%     783.000us         0.99%       1.047ms      47.591us       7.958ms         7.83%       7.958ms     361.727us            22  
+void at::native::_scatter_gather_elementwise_kernel<...         0.00%       0.000us         0.00%       0.000us       0.000us       7.958ms         7.83%       7.958ms     361.727us            22  
+                                            aten::copy_         0.21%     222.000us         0.43%     457.000us      41.545us       7.279ms         7.16%       7.279ms     661.727us            11  
+                                            aten::clone         0.11%     111.000us         0.63%     662.000us      66.200us       0.000us         0.00%       7.272ms     727.200us            10  
+                         Memcpy DtoD (Device -> Device)         0.00%       0.000us         0.00%       0.000us       0.000us       7.272ms         7.15%       7.272ms     727.200us            10  
+void at::native::elementwise_kernel<128, 2, at::nati...         0.00%       0.000us         0.00%       0.000us       0.000us       7.243ms         7.13%       7.243ms     724.300us            10  
+void at::native::elementwise_kernel<128, 2, at::nati...         0.00%       0.000us         0.00%       0.000us       0.000us       5.422ms         5.33%       5.422ms     132.244us            41  
+                                              aten::sum         0.49%     522.000us         0.59%     624.000us      62.400us       3.557ms         3.50%       3.557ms     355.700us            10  
+void at::native::reduce_kernel<512, 1, at::native::R...         0.00%       0.000us         0.00%       0.000us       0.000us       3.557ms         3.50%       3.557ms     355.700us            10  
+                                             aten::mean         0.48%     511.000us         0.58%     616.000us      61.600us       1.829ms         1.80%       1.829ms     182.900us            10  
+void at::native::reduce_kernel<128, 4, at::native::R...         0.00%       0.000us         0.00%       0.000us       0.000us       1.829ms         1.80%       1.829ms     182.900us            10  
+                                            aten::fill_         0.78%     828.000us         1.15%       1.209ms      28.116us       1.690ms         1.66%       1.690ms      39.302us            43  
+void at::native::vectorized_elementwise_kernel<4, at...         0.00%       0.000us         0.00%       0.000us       0.000us       1.640ms         1.61%       1.640ms      49.697us            33  
+                                            aten::zeros         0.21%     223.000us         1.48%       1.563ms      67.957us       0.000us         0.00%       1.597ms      69.435us            23  
+                                            aten::zero_         0.24%     253.000us         0.84%     884.000us      38.435us       0.000us         0.00%       1.597ms      69.435us            23  
+                                 ampere_sgemm_128x64_tn         0.00%       0.000us         0.00%       0.000us       0.000us       1.080ms         1.06%       1.080ms     360.000us             3  
+                             torch_scatter::scatter_max         0.58%     612.000us         2.61%       2.760ms     276.000us     241.000us         0.24%     411.000us      41.100us            10  
+void cutlass::Kernel<cutlass_80_tensorop_s1688gemm_2...         0.00%       0.000us         0.00%       0.000us       0.000us     225.000us         0.22%     225.000us      25.000us             9  
+                                       aten::layer_norm         0.05%      56.000us         1.07%       1.126ms     125.111us       0.000us         0.00%     216.000us      24.000us             9  
+                                aten::native_layer_norm         0.40%     426.000us         1.01%       1.070ms     118.889us     216.000us         0.21%     216.000us      24.000us             9  
+void at::native::(anonymous namespace)::vectorized_l...         0.00%       0.000us         0.00%       0.000us       0.000us     216.000us         0.21%     216.000us      24.000us             9  
+                                        aten::clamp_min         0.34%     357.000us         1.23%       1.299ms      64.950us      76.000us         0.07%     152.000us       7.600us            20  
+void at::native::vectorized_elementwise_kernel<4, at...         0.00%       0.000us         0.00%       0.000us       0.000us     146.000us         0.14%     146.000us       7.300us            20  
+void scatter_kernel<float, (ReductionType)5>(float c...         0.00%       0.000us         0.00%       0.000us       0.000us     131.000us         0.13%     131.000us      13.100us            10  
+                                              aten::max         0.42%     444.000us         0.73%     775.000us      70.455us     129.000us         0.13%     129.000us      11.727us            11  
+void at::native::reduce_kernel<512, 1, at::native::R...         0.00%       0.000us         0.00%       0.000us       0.000us     129.000us         0.13%     129.000us      11.727us            11  
+                                              aten::div         0.66%     700.000us         0.81%     859.000us      42.950us     110.000us         0.11%     110.000us       5.500us            20  
+void scatter_arg_kernel<float>(float const*, at::cud...         0.00%       0.000us         0.00%       0.000us       0.000us     110.000us         0.11%     110.000us      11.000us            10  
+                                             aten::add_         0.22%     234.000us         0.30%     312.000us      31.200us      96.000us         0.09%      96.000us       9.600us            10  
+                                             aten::relu         0.16%     166.000us         0.92%     971.000us      97.100us       0.000us         0.00%      76.000us       7.600us            10  
+void at::native::vectorized_elementwise_kernel<4, at...         0.00%       0.000us         0.00%       0.000us       0.000us      76.000us         0.07%      76.000us       7.600us            10  
+void at::native::vectorized_elementwise_kernel<4, at...         0.00%       0.000us         0.00%       0.000us       0.000us      60.000us         0.06%      60.000us       6.000us            10  
+                                        aten::full_like         0.09%     100.000us         0.61%     647.000us      64.700us       0.000us         0.00%      50.000us       5.000us            10  
+                                              aten::sub         0.32%     343.000us         0.39%     417.000us      41.700us      50.000us         0.05%      50.000us       5.000us            10  
+                                              aten::add         0.33%     352.000us         0.41%     429.000us      42.900us      50.000us         0.05%      50.000us       5.000us            10  
+void at::native::vectorized_elementwise_kernel<4, at...         0.00%       0.000us         0.00%       0.000us       0.000us      50.000us         0.05%      50.000us       5.000us            10  
+void at::native::vectorized_elementwise_kernel<4, at...         0.00%       0.000us         0.00%       0.000us       0.000us      50.000us         0.05%      50.000us       5.000us            10  
+void at::native::vectorized_elementwise_kernel<4, at...         0.00%       0.000us         0.00%       0.000us       0.000us      50.000us         0.05%      50.000us       5.000us            10  
+                                              aten::exp         0.32%     342.000us         0.39%     416.000us      41.600us      49.000us         0.05%      49.000us       4.900us            10  
+void at::native::vectorized_elementwise_kernel<4, at...         0.00%       0.000us         0.00%       0.000us       0.000us      49.000us         0.05%      49.000us       4.900us            10  
+                                     aten::masked_fill_         0.22%     234.000us         0.29%     309.000us      28.091us      43.000us         0.04%      43.000us       3.909us            11  
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 105.588ms
+Self CUDA time total: 101.656ms
+
