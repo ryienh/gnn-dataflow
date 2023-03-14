@@ -84,7 +84,7 @@ def evaluate_epoch(val_loader, model, device, bs, width, depth, record):
     with torch.no_grad():
 
         for X in tqdm.tqdm(val_loader):
-            X = X.to(device)
+            # X = X.to(device)
             X.y = X.y.to(torch.float32)
 
             logits = None
@@ -140,8 +140,6 @@ def main(node_feature_size, hidden_dim, num_conv_layers, num_heads, batch_size, 
     params = sum(p.numel() for p in model.parameters())
     print(f"Num parameters: {params}")
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
-
     # get dataset, splits
     dataset = PygPCQM4Mv2Dataset(root="./data", smiles2graph=smiles2graph)
 
@@ -149,7 +147,7 @@ def main(node_feature_size, hidden_dim, num_conv_layers, num_heads, batch_size, 
     valid_idx = split_dict["valid"]
 
     valid_dataset = dataset[valid_idx]
-    valid_dataset = valid_dataset.to("cuda")
+    valid_dataset = valid_dataset.data.to("cuda")
 
     va_loader = DataLoader(
         dataset=dataset[valid_idx],
