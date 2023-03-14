@@ -111,7 +111,7 @@ def evaluate_epoch(val_loader, model, device, bs, width, depth):
     predictions = []
     labels = []
 
-    first = True
+    cntr = 1
     with torch.no_grad():
 
         for X in tqdm.tqdm(val_loader):
@@ -120,19 +120,18 @@ def evaluate_epoch(val_loader, model, device, bs, width, depth):
 
             logits = None
 
-            if first:
+            with profile(
+                activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+                record_shapes=True,
+            ) as prof:
+                with record_function("model_inference"):
+                    # model(inputs)
+                    logits = model(X)
 
-                with profile(
-                    activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-                    record_shapes=True,
-                ) as prof:
-                    with record_function("model_inference"):
-                        # model(inputs)
-                        logits = model(X)
-            else:
-                logits = model(X)
+            cntr += 1
 
-            first = False
+            if cntr == 10:
+                break
 
             prediction = torch.squeeze(logits)
             my_loss = torch.nn.functional.mse_loss(prediction, X.y)
@@ -150,7 +149,7 @@ def evaluate_epoch(val_loader, model, device, bs, width, depth):
 
     df = prof_to_df(prof)
     df.to_csv(
-        f"/lus/grand/projects/datascience/gnn-dataflow/profiling_data/gtransformer_bs_{bs}.csv",
+        f"/lus/grand/projects/datascience/gnn-dataflow/profiling_data/gtransformer/gtransformer_width_{width}.csv",
         index=False,
     )
 
@@ -217,95 +216,95 @@ def main(node_feature_size, hidden_dim, num_conv_layers, num_heads, batch_size):
 
 if __name__ == "__main__":
 
+    # Macros
+    ARCH = "GATv2"  # gTransformer
+    MODE = "batch_size"  # , width, depth
+    OPS_SAVE_DIR = "/lus/grand/projects/datascience/gnn-dataflow/profiling_data"
+    LATENCY_SAVE_DIR = "./logs"
+
     torch.manual_seed(0)
 
-    traintimes = []
     valtimes = []
     params_lst = []
 
     """
     Batch size
     """
-    batchsizes = [2 ** x for x in range(2, 14)]
-    for batchsize in batchsizes:  # 10, 12000
+    if MODE == "batch_size":
+        batchsizes = [2 ** x for x in range(2, 14)]
+        for batchsize in batchsizes:  # 10, 12000
 
-        _, valtime, params = main(
-            node_feature_size=9,
-            hidden_dim=64,
-            num_conv_layers=4,
-            num_heads=16,
-            batch_size=batchsize,
-        )
+            _, valtime, params = main(
+                node_feature_size=9,
+                hidden_dim=64,
+                num_conv_layers=4,
+                num_heads=16,
+                batch_size=batchsize,
+            )
 
-        # traintimes.append(traintime)
-        valtimes.append(valtime)
-        params_lst.append(params)
+            # traintimes.append(traintime)
+            valtimes.append(valtime)
+            params_lst.append(params)
 
-    results = {"val_times": valtimes, "params": params_lst}
+        results = {"val_times": valtimes, "params": params_lst}
 
-    df = pd.DataFrame(results)
-    df.to_csv("temp/batch_size.csv")
+        df = pd.DataFrame(results)
+        df.to_csv(f"{LATENCY_SAVE_DIR}/A100/{ARCH}/{MODE}.csv")
 
     """
     Parameter width
     """
-    possible_param_ws = [2 ** x for x in range(10)]
+    if MODE == "width":
+        possible_param_ws = [2 ** x for x in range(10)]
 
-    cnt = 1
+        cnt = 1
 
-    for param_w in possible_param_ws:
-        print(cnt)
-        cnt += 1
+        for param_w in possible_param_ws:
+            print(cnt)
+            cnt += 1
 
-        _, valtime, params = main(
-            node_feature_size=9,
-            hidden_dim=param_w,
-            num_conv_layers=4,
-            num_heads=32,
-            batch_size=2048,
-        )
+            _, valtime, params = main(
+                node_feature_size=9,
+                hidden_dim=param_w,
+                num_conv_layers=4,
+                num_heads=32,
+                batch_size=2048,
+            )
 
-        # traintimes.append(traintime)
-        valtimes.append(valtime)
-        params_lst.append(params)
+            # traintimes.append(traintime)
+            valtimes.append(valtime)
+            params_lst.append(params)
 
-    results = {"val_times": valtimes, "params": params_lst}
+        results = {"val_times": valtimes, "params": params_lst}
 
-    df = pd.DataFrame(results)
-    df.to_csv("temp/width.csv")
+        df = pd.DataFrame(results)
+        df.to_csv(f"{LATENCY_SAVE_DIR}/A100/{ARCH}/{MODE}.csv")
 
     """
     Parameter length
     """
-    possible_param_ls = [2 ** x for x in range(10)]
+    if MODE == "length":
+        possible_param_ls = [2 ** x for x in range(10)]
 
-    cnt = 1
+        cnt = 1
 
-    for param_l in possible_param_ls:
-        print(cnt)
-        cnt += 1
+        for param_l in possible_param_ls:
+            print(cnt)
+            cnt += 1
 
-        _, valtime, params = main(
-            node_feature_size=9,
-            hidden_dim=16,
-            num_conv_layers=param_l,
-            num_heads=32,
-            batch_size=2048,
-        )
+            _, valtime, params = main(
+                node_feature_size=9,
+                hidden_dim=16,
+                num_conv_layers=param_l,
+                num_heads=32,
+                batch_size=2048,
+            )
 
-        # traintimes.append(traintime)
-        valtimes.append(valtime)
-        params_lst.append(params)
+            # traintimes.append(traintime)
+            valtimes.append(valtime)
+            params_lst.append(params)
 
-    results = {"val_times": valtimes, "params": params_lst}
+        results = {"val_times": valtimes, "params": params_lst}
 
-    df = pd.DataFrame(results)
-    df.to_csv("temp/length.csv")
-
-    main(
-        node_feature_size=9,
-        hidden_dim=64,
-        num_conv_layers=4,
-        num_heads=16,
-        batch_size=12000,
-    )
+        df = pd.DataFrame(results)
+        df.to_csv(f"{LATENCY_SAVE_DIR}/A100/{ARCH}/{MODE}.csv")
