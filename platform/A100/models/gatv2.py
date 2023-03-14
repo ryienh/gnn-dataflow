@@ -72,38 +72,7 @@ class GATREG(torch.nn.Module):
         return x
 
 
-def train_epoch(data_loader, model, optimizer, device):
-    """
-    Train the `model` for one epoch of data from `data_loader`
-    Use `optimizer` to optimize the specified `criterion`
-    """
-    model = model.train()
-    running_loss = 0
-
-    for X in tqdm.tqdm(data_loader):
-
-        X.y = X.y.to(torch.float32)
-        X = X.to(device)
-
-        # clear parameter gradients
-        optimizer.zero_grad()
-
-        # forward + backward + optimize
-        prediction = model(X)
-        prediction = torch.squeeze(prediction)
-        my_loss = torch.nn.functional.mse_loss(prediction, X.y)
-        my_loss.backward()
-        optimizer.step()
-
-        # calculate loss
-        running_loss += my_loss.item() * X.num_graphs
-
-    running_loss /= len(data_loader.dataset)
-
-    return running_loss
-
-
-def evaluate_epoch(val_loader, model, device, bs, width, depth):
+def evaluate_epoch(val_loader, model, device, bs, width, depth, record):
 
     model = model.eval()
 
@@ -121,7 +90,7 @@ def evaluate_epoch(val_loader, model, device, bs, width, depth):
             logits = None
 
             with profile(
-                activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+                activities=[record],
                 record_shapes=True,
             ) as prof:
                 with record_function("model_inference"):
@@ -156,7 +125,7 @@ def evaluate_epoch(val_loader, model, device, bs, width, depth):
     return running_loss
 
 
-def main(node_feature_size, hidden_dim, num_conv_layers, num_heads, batch_size):
+def main(node_feature_size, hidden_dim, num_conv_layers, num_heads, batch_size, record):
 
     model = GATREG(
         input_dim=node_feature_size,
@@ -177,14 +146,10 @@ def main(node_feature_size, hidden_dim, num_conv_layers, num_heads, batch_size):
     dataset = PygPCQM4Mv2Dataset(root="./data", smiles2graph=smiles2graph)
 
     split_dict = dataset.get_idx_split()
-    train_idx = split_dict["train"]  # numpy array storing indices of training molecules
     valid_idx = split_dict["valid"]
 
-    tr_loader = DataLoader(
-        dataset[train_idx],
-        batch_size=batch_size,
-        shuffle=True,
-    )
+    valid_dataset = dataset[valid_idx]
+    valid_dataset = valid_dataset.to("cuda")
 
     va_loader = DataLoader(
         dataset=dataset[valid_idx],
@@ -207,6 +172,7 @@ def main(node_feature_size, hidden_dim, num_conv_layers, num_heads, batch_size):
                 bs=batch_size,
                 width=hidden_dim,
                 depth=num_conv_layers,
+                record=record,
             )
             endtime = timeit.default_timer()
             valtime = endtime - starttime
@@ -221,6 +187,7 @@ if __name__ == "__main__":
     MODE = "batch_size"  # , width, depth
     OPS_SAVE_DIR = "/lus/grand/projects/datascience/gnn-dataflow/profiling_data"
     LATENCY_SAVE_DIR = "./logs"
+    RECORD = ProfilerActivity.CPU  # ProfilerActivity.CUDA
 
     torch.manual_seed(0)
 
@@ -238,8 +205,9 @@ if __name__ == "__main__":
                 node_feature_size=9,
                 hidden_dim=64,
                 num_conv_layers=4,
-                num_heads=16,
+                num_heads=32,
                 batch_size=batchsize,
+                record=RECORD,
             )
 
             # traintimes.append(traintime)
@@ -269,6 +237,7 @@ if __name__ == "__main__":
                 num_conv_layers=4,
                 num_heads=32,
                 batch_size=2048,
+                record=RECORD,
             )
 
             # traintimes.append(traintime)
@@ -294,10 +263,11 @@ if __name__ == "__main__":
 
             _, valtime, params = main(
                 node_feature_size=9,
-                hidden_dim=16,
+                hidden_dim=64,
                 num_conv_layers=param_l,
                 num_heads=32,
                 batch_size=2048,
+                record=RECORD,
             )
 
             # traintimes.append(traintime)
