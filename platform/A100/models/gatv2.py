@@ -21,6 +21,7 @@ import torchvision.models as models
 from torch.profiler import profile, record_function, ProfilerActivity
 
 from util import prof_to_df
+import os
 
 
 class GATREG(torch.nn.Module):
@@ -73,7 +74,7 @@ class GATREG(torch.nn.Module):
 
 
 def evaluate_epoch(
-    val_loader, model, device, bs, width, depth, record, mode, ops_save_dir
+    val_loader, model, device, bs, width, depth, record, mode, ops_save_dir, model_name
 ):
 
     model = model.eval()
@@ -105,9 +106,22 @@ def evaluate_epoch(
                     prediction = torch.squeeze(logits)
                     my_loss = torch.nn.functional.mse_loss(prediction, X.y)
 
+        param = None
+        if bs is not None:
+            param = bs
+        elif width is not None:
+            param = width
+        elif depth is not None:
+            param = depth
+
+        if not os.path.exists(f"{ops_save_dir}/{model_name}"):
+            os.makedirs(f"{ops_save_dir}/{model_name}")
+
+        prof_type = "cpu" if record == ProfilerActivity.CPU else "cuda"
+
         df = prof_to_df(prof)
         df.to_csv(
-            f"{ops_save_dir}/gtransformer/gtransformer_{mode}_{param}.csv",
+            f"{ops_save_dir}/{model_name}/{model_name}_{prof_type}_{mode}_{param}.csv",
             index=False,
         )
 
@@ -123,6 +137,7 @@ def main(
     record,
     mode,
     ops_save_dir,
+    model_name,
 ):
 
     model = GATREG(
@@ -166,6 +181,7 @@ def main(
         record=record,
         mode=mode,
         ops_save_dir=ops_save_dir,
+        model_name=model_name,
     )
     endtime = timeit.default_timer()
     valtime = endtime - starttime
@@ -203,6 +219,7 @@ if __name__ == "__main__":
                 record=RECORD,
                 mode=MODE,
                 ops_save_dir=OPS_SAVE_DIR,
+                model_name=ARCH,
             )
 
             # traintimes.append(traintime)
@@ -235,8 +252,8 @@ if __name__ == "__main__":
                 record=RECORD,
                 mode=MODE,
                 ops_save_dir=OPS_SAVE_DIR,
-
-            # traintimes.append(traintime)
+                model_name=ARCH,
+            )
             valtimes.append(valtime)
             params_lst.append(params)
 
@@ -265,9 +282,9 @@ if __name__ == "__main__":
                 batch_size=2048,
                 record=RECORD,
                 mode=MODE,
-                ops_save_dir=OPS_SAVE_DIR
                 ops_save_dir=OPS_SAVE_DIR,
-
+                model_name=ARCH,
+            )
             # traintimes.append(traintime)
             valtimes.append(valtime)
             params_lst.append(params)
