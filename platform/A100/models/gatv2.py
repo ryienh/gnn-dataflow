@@ -72,7 +72,9 @@ class GATREG(torch.nn.Module):
         return x
 
 
-def evaluate_epoch(val_loader, model, device, bs, width, depth, record):
+def evaluate_epoch(
+    val_loader, model, device, bs, width, depth, record, mode, ops_save_dir
+):
 
     model = model.eval()
 
@@ -83,49 +85,45 @@ def evaluate_epoch(val_loader, model, device, bs, width, depth, record):
     cntr = 1
     with torch.no_grad():
 
-        for X in tqdm.tqdm(val_loader):
-            # X = X.to(device)
-            X.y = X.y.to(torch.float32)
+        with profile(
+            activities=[record],
+            record_shapes=True,
+        ) as prof:
+            with record_function("model_inference"):
 
-            logits = None
+                for X in tqdm.tqdm(val_loader):
+                    # X = X.to(device)
+                    X.y = X.y.to(torch.float32)
 
-            with profile(
-                activities=[record],
-                record_shapes=True,
-            ) as prof:
-                with record_function("model_inference"):
-                    # model(inputs)
                     logits = model(X)
 
-            cntr += 1
+                    cntr += 1
 
-            if cntr == 10:
-                break
+                    if cntr == 10:
+                        break
 
-            prediction = torch.squeeze(logits)
-            my_loss = torch.nn.functional.mse_loss(prediction, X.y)
+                    prediction = torch.squeeze(logits)
+                    my_loss = torch.nn.functional.mse_loss(prediction, X.y)
 
-            # loss calculation
-            running_loss += my_loss.item() * X.num_graphs
-
-            try:
-                predictions += prediction.tolist()
-            except Exception:
-                pass
-            labels += X.y.tolist()
-
-        running_loss /= len(val_loader.dataset)
-
-    df = prof_to_df(prof)
-    df.to_csv(
-        f"/lus/grand/projects/datascience/gnn-dataflow/profiling_data/gtransformer/gtransformer_width_{width}.csv",
-        index=False,
-    )
+        df = prof_to_df(prof)
+        df.to_csv(
+            f"{ops_save_dir}/gtransformer/gtransformer_{mode}_{param}.csv",
+            index=False,
+        )
 
     return running_loss
 
 
-def main(node_feature_size, hidden_dim, num_conv_layers, num_heads, batch_size, record):
+def main(
+    node_feature_size,
+    hidden_dim,
+    num_conv_layers,
+    num_heads,
+    batch_size,
+    record,
+    mode,
+    ops_save_dir,
+):
 
     model = GATREG(
         input_dim=node_feature_size,
@@ -155,27 +153,24 @@ def main(node_feature_size, hidden_dim, num_conv_layers, num_heads, batch_size, 
         shuffle=False,
     )
 
-    traintime = None
     valtime = None
 
-    for epoch in range(0, 2):
+    starttime = timeit.default_timer()
+    va_loss = evaluate_epoch(
+        va_loader,
+        model,
+        "cuda",
+        bs=batch_size,
+        width=hidden_dim,
+        depth=num_conv_layers,
+        record=record,
+        mode=mode,
+        ops_save_dir=ops_save_dir,
+    )
+    endtime = timeit.default_timer()
+    valtime = endtime - starttime
 
-        if epoch == 1:
-
-            starttime = timeit.default_timer()
-            va_loss = evaluate_epoch(
-                va_loader,
-                model,
-                "cuda",
-                bs=batch_size,
-                width=hidden_dim,
-                depth=num_conv_layers,
-                record=record,
-            )
-            endtime = timeit.default_timer()
-            valtime = endtime - starttime
-
-    return traintime, valtime, params
+    return valtime, params
 
 
 if __name__ == "__main__":
@@ -199,13 +194,15 @@ if __name__ == "__main__":
         batchsizes = [2 ** x for x in range(2, 14)]
         for batchsize in batchsizes:  # 10, 12000
 
-            _, valtime, params = main(
+            valtime, params = main(
                 node_feature_size=9,
                 hidden_dim=64,
                 num_conv_layers=4,
                 num_heads=32,
                 batch_size=batchsize,
                 record=RECORD,
+                mode=MODE,
+                ops_save_dir=OPS_SAVE_DIR,
             )
 
             # traintimes.append(traintime)
@@ -229,14 +226,15 @@ if __name__ == "__main__":
             print(cnt)
             cnt += 1
 
-            _, valtime, params = main(
+            valtime, params = main(
                 node_feature_size=9,
                 hidden_dim=param_w,
                 num_conv_layers=4,
                 num_heads=32,
                 batch_size=2048,
                 record=RECORD,
-            )
+                mode=MODE,
+                ops_save_dir=OPS_SAVE_DIR,
 
             # traintimes.append(traintime)
             valtimes.append(valtime)
@@ -259,14 +257,16 @@ if __name__ == "__main__":
             print(cnt)
             cnt += 1
 
-            _, valtime, params = main(
+            valtime, params = main(
                 node_feature_size=9,
                 hidden_dim=64,
                 num_conv_layers=param_l,
                 num_heads=32,
                 batch_size=2048,
                 record=RECORD,
-            )
+                mode=MODE,
+                ops_save_dir=OPS_SAVE_DIR
+                ops_save_dir=OPS_SAVE_DIR,
 
             # traintimes.append(traintime)
             valtimes.append(valtime)
