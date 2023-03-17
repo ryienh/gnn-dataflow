@@ -93,18 +93,17 @@ def evaluate_epoch(
             with record_function("model_inference"):
 
                 for X in tqdm.tqdm(val_loader):
-                    # X = X.to(device)
                     X.y = X.y.to(torch.float32)
 
                     logits = model(X)
+
+                    prediction = torch.squeeze(logits)
+                    my_loss = torch.nn.functional.mse_loss(prediction, X.y)
 
                     cntr += 1
 
                     if cntr == 10:
                         break
-
-                    prediction = torch.squeeze(logits)
-                    my_loss = torch.nn.functional.mse_loss(prediction, X.y)
 
         param = None
         if bs is not None:
@@ -207,7 +206,7 @@ if __name__ == "__main__":
     Batch size
     """
     if MODE == "batch_size":
-        batchsizes = [2 ** x for x in range(2, 14)]
+        batchsizes = [2 ** x for x in range(10, 14)]
         for batchsize in batchsizes:  # 10, 12000
 
             valtime, params = main(
