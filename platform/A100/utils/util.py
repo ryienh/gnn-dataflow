@@ -357,17 +357,18 @@ def prof_to_df(prof):
     df["time_range"] = df["time_range"].apply(lambda x: x.elapsed_us())
     #df["cpu_children"] = df["cpu_children"].apply(lambda x: [c.id for c in x])
     #df["cpu_children"] = df["cpu_children"].apply(lambda x: [df[df["FE"].__eq__(c)][UID].item() for c in x])
+    UID2FE = df.set_index(UID)["FE"].to_dict()
     id2UID_or_dfFE = {k: df.iloc[v[0]][UID] if len(v) == 1 else pd.DataFrame([df.iloc[i] for i in v]) \
         for k,v in df.groupby("id").groups.items()}
-    def get_child_uid(c):
+    def get_child_uid(c, df):
         return id2UID_or_dfFE[c.id] if not isinstance(id2UID_or_dfFE[c.id], pd.DataFrame) \
+                                    and UID2FE[id2UID_or_dfFE[c.id]].__eq__(c) \
             else id2UID_or_dfFE[c.id][id2UID_or_dfFE[c.id]["FE"].__eq__(c)][UID].item()
-    
-    df["cpu_children"] = df["cpu_children"].apply(lambda x: [get_child_uid(c) for c in x])
+    df["cpu_children"] = df["cpu_children"].apply(lambda x: [get_child_uid(c, df) for c in x])  
     
     #df["cpu_parent"] = df["cpu_parent"].apply(lambda x: x.id if x is not None else -1)
     #df["cpu_parent"] = df["cpu_parent"].apply(lambda x: df[df["FE"].__eq__(x)][UID].item() if x is not None else -1)
-    df["cpu_parent"] = df["cpu_parent"].apply(lambda x: get_child_uid(x) if x is not None else -1)
+    df["cpu_parent"] = df["cpu_parent"].apply(lambda x: get_child_uid(x, df) if x is not None else -1)
     
     df["input_shapes"] = df["input_shapes"].astype(str)
     # get operator self time
