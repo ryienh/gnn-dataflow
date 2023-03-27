@@ -355,13 +355,27 @@ def prof_to_df(prof):
     df = pd.DataFrame.from_dict([{**{"FE": e}, **e.__dict__} for e in prof.events()])
     df[UID] = range(len(df))
     df["time_range"] = df["time_range"].apply(lambda x: x.elapsed_us())
-#     df["cpu_children"] = df["cpu_children"].apply(lambda x: [c.id for c in x])
-    df["cpu_children"] = df["cpu_children"].apply(lambda x: [df[df["FE"].__eq__(c)][UID].item() for c in x])
-#     df["cpu_parent"] = df["cpu_parent"].apply(lambda x: x.id if x is not None else -1)
-    df["cpu_parent"] = df["cpu_parent"].apply(lambda x: df[df["FE"].__eq__(x)][UID].item() if x is not None else -1)
+    #df["cpu_children"] = df["cpu_children"].apply(lambda x: [c.id for c in x])
+    #df["cpu_children"] = df["cpu_children"].apply(lambda x: [df[df["FE"].__eq__(c)][UID].item() for c in x])
+    UID2FE = df.set_index(UID)["FE"].to_dict()
+    id2UID_or_dfFE = {k: df.iloc[v[0]][UID] if len(v) == 1 else pd.DataFrame([df.iloc[i] for i in v]) \
+        for k,v in df.groupby("id").groups.items()}
+    def get_child_uid(c, df):
+        return id2UID_or_dfFE[c.id] if not isinstance(id2UID_or_dfFE[c.id], pd.DataFrame) \
+                                    and UID2FE[id2UID_or_dfFE[c.id]].__eq__(c) \
+            else id2UID_or_dfFE[c.id][id2UID_or_dfFE[c.id]["FE"].__eq__(c)][UID].item()
+    df["cpu_children"] = df["cpu_children"].apply(lambda x: [get_child_uid(c, df) for c in x])  
+    
+    #df["cpu_parent"] = df["cpu_parent"].apply(lambda x: x.id if x is not None else -1)
+    #df["cpu_parent"] = df["cpu_parent"].apply(lambda x: df[df["FE"].__eq__(x)][UID].item() if x is not None else -1)
+    df["cpu_parent"] = df["cpu_parent"].apply(lambda x: get_child_uid(x, df) if x is not None else -1)
+    
     df["input_shapes"] = df["input_shapes"].astype(str)
     # get operator self time
-    df["children_time"] = df.apply(lambda x: get_children(df, x[UID])["time_range"].sum(), axis=1)
+    #df["children_time"] = df.apply(lambda x: get_children(df, x[UID])["time_range"].sum(), axis=1)
+    uid2childern_uids = df.set_index(UID)["cpu_children"].to_dict()
+    df["children_time"] = df.apply(lambda x: df[df[UID].isin(uid2childern_uids[x[UID]])]["time_range"].sum(), axis=1)
+    
     df["self_time"] = df["time_range"] - df["children_time"]
     total_time = df["self_time"].sum()
     df["percent_self_time"] = 100 * df["self_time"] / total_time
