@@ -18,7 +18,7 @@ import pandas as pd
 
 import torch
 import torchvision.models as models
-from torch.profiler import profile, record_function, ProfilerActivity
+from torch.profiler import profile, record_function, ProfilerActivity, schedule
 
 from util import prof_to_df
 import os
@@ -77,22 +77,28 @@ def evaluate_epoch(
     val_loader, model, device, bs, width, depth, record, mode, ops_save_dir, model_name
 ):
 
+    my_schedule = schedule(wait=5, warmup=1, active=4)  # repeat=1
+
     model = model.eval()
 
     running_loss = 0
     predictions = []
     labels = []
 
-    cntr = 1
+    # cntr = 0
     with torch.no_grad():
 
         with profile(
-            activities=[record],
-            record_shapes=True,
+            activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU], record_shapes=False, schedule=my_schedule
         ) as prof:
             with record_function("model_inference"):
 
-                for X in tqdm.tqdm(val_loader):
+                for step, X in enumerate(tqdm.tqdm(val_loader)):
+                    # X = X.to("cuda")
+
+                    if step >= (5 + 1 + 4) * 1:
+                        break
+
                     X.y = X.y.to(torch.float32)
 
                     logits = model(X)
@@ -100,29 +106,31 @@ def evaluate_epoch(
                     prediction = torch.squeeze(logits)
                     my_loss = torch.nn.functional.mse_loss(prediction, X.y)
 
-                    cntr += 1
+                    prof.step()
 
-                    if cntr == 10:
-                        break
+                    # cntr += 1
+                    # if cntr == 10:
+                    #     break
 
-        param = None
-        if bs is not None:
-            param = bs
-        elif width is not None:
-            param = width
-        elif depth is not None:
-            param = depth
+    param = None
+    if mode == "batch_size":
+        param = bs
+    elif mode == "width":
+        param = width
+    elif mode == "depth":
+        param = depth
+    else:
+        raise ValueError(f"Warning, invalid mode: {mode}")
 
-        if not os.path.exists(f"{ops_save_dir}/{model_name}"):
-            os.makedirs(f"{ops_save_dir}/{model_name}")
+    if not os.path.exists(f"{ops_save_dir}/{model_name}"):
+        os.makedirs(f"{ops_save_dir}/{model_name}")
 
-        prof_type = "cpu" if record == ProfilerActivity.CPU else "cuda"
-
-        df = prof_to_df(prof)
-        df.to_csv(
-            f"{ops_save_dir}/{model_name}/{model_name}_{prof_type}_{mode}_{param}.csv",
-            index=False,
-        )
+    prof_type = "cpu" if record == ProfilerActivity.CPU else "cuda"
+    df = prof_to_df(prof)
+    df.to_csv(
+        f"{ops_save_dir}/{model_name}/{model_name}-{prof_type}-{mode}-{param}.csv",
+        index=False,
+    )
 
     return running_loss
 
@@ -152,6 +160,10 @@ def main(
     params = sum(p.numel() for p in model.parameters())
     print(f"Num parameters: {params}")
 
+    # import pdb
+
+    # pdb.set_trace()
+
     # get dataset, splits
     dataset = PygPCQM4Mv2Dataset(root="./data", smiles2graph=smiles2graph)
 
@@ -159,12 +171,19 @@ def main(
     valid_idx = split_dict["valid"]
 
     valid_dataset = dataset[valid_idx]
-    valid_dataset = valid_dataset.data.to("cuda")
+    valid_dataset.data.edge_index = valid_dataset.data.edge_index.to("cuda")
+    valid_dataset.data.edge_attr = valid_dataset.data.edge_attr.to("cuda")
+    valid_dataset.data.x = valid_dataset.data.x.to("cuda")
+    valid_dataset.data.y = valid_dataset.data.y.to("cuda")
+    # valid_dataset = valid_dataset.data.to("cuda")
+    # torch.cuda.synchronize()
 
     va_loader = DataLoader(
-        dataset=dataset[valid_idx],
+        dataset=valid_dataset,
         batch_size=batch_size,
         shuffle=False,
+        # num_workers=2,
+        # prefetch_factor=batch_size,
     )
 
     valtime = None
@@ -192,10 +211,10 @@ if __name__ == "__main__":
 
     # Macros
     ARCH = "GATv2"  # gTransformer
-    MODE = "batch_size"  # , width, depth
+    MODE = "batch_size"  # batch_size, width, depth
     OPS_SAVE_DIR = "/lus/grand/projects/datascience/gnn-dataflow/profiling_data"
     LATENCY_SAVE_DIR = "./logs"
-    RECORD = ProfilerActivity.CPU  # ProfilerActivity.CUDA
+    RECORD = ProfilerActivity.CUDA  # ProfilerActivity.CUDA, ProfilerActivity.CPU
 
     torch.manual_seed(0)
 
@@ -206,7 +225,7 @@ if __name__ == "__main__":
     Batch size
     """
     if MODE == "batch_size":
-        batchsizes = [2 ** x for x in range(10, 14)]
+        batchsizes = [2 ** x for x in range(0, 14)]
         for batchsize in batchsizes:  # 10, 12000
 
             valtime, params = main(
@@ -264,7 +283,7 @@ if __name__ == "__main__":
     """
     Parameter length
     """
-    if MODE == "length":
+    if MODE == "depth":
         possible_param_ls = [2 ** x for x in range(10)]
 
         cnt = 1
