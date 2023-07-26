@@ -22,6 +22,7 @@ from torch.profiler import profile, record_function, ProfilerActivity, schedule
 
 from util import prof_to_df
 import os
+from graph_transformer_pytorch import GraphTransformer
 
 
 class GATREG(torch.nn.Module):
@@ -74,7 +75,19 @@ class GATREG(torch.nn.Module):
 
 
 def evaluate_epoch(
-    val_loader, model, device, bs, width, depth, record, mode, ops_save_dir, model_name
+    val_loader,
+    model,
+    device,
+    bs,
+    width,
+    depth,
+    record,
+    mode,
+    ops_save_dir,
+    model_name,
+    nodes,
+    edges,
+    mask,
 ):
 
     my_schedule = schedule(wait=5, warmup=1, active=4)  # repeat=1
@@ -89,22 +102,27 @@ def evaluate_epoch(
     with torch.no_grad():
 
         with profile(
-            activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU], record_shapes=False, schedule=my_schedule
+            activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
+            record_shapes=False,
+            schedule=my_schedule,
+            on_trace_ready=torch.profiler.tensorboard_trace_handler("./runs/profiler"),
         ) as prof:
             with record_function("model_inference"):
 
-                for step, X in enumerate(tqdm.tqdm(val_loader)):
-                    # X = X.to("cuda")
+                # for step, X in enumerate(tqdm.tqdm(val_loader)):
+                for step in range(100):
 
                     if step >= (5 + 1 + 4) * 1:
                         break
 
-                    X.y = X.y.to(torch.float32)
+                    # X.y = X.y.to(torch.float32)
+                    # nodes = X.x
+                    # edges = X.edge_attr
 
-                    logits = model(X)
+                    logits, edges = model(nodes, edges, mask)
 
                     prediction = torch.squeeze(logits)
-                    my_loss = torch.nn.functional.mse_loss(prediction, X.y)
+                    # my_loss = torch.nn.functional.mse_loss(prediction, X.y)
 
                     prof.step()
 
@@ -147,13 +165,33 @@ def main(
     model_name,
 ):
 
-    model = GATREG(
-        input_dim=node_feature_size,
-        hidden_dim=hidden_dim,
-        dropout=0,
-        num_conv_layers=num_conv_layers,
-        heads=num_heads,
+    # model = GATREG(
+    #     input_dim=node_feature_size,
+    #     hidden_dim=hidden_dim,
+    #     dropout=0,
+    #     num_conv_layers=num_conv_layers,
+    #     heads=num_heads,
+    # )
+
+    model = GraphTransformer(
+        dim=256,
+        depth=num_conv_layers,
+        edge_dim=512,  # optional - if left out, edge dimensions is assumed to be the same as the node dimensions above
+        with_feedforwards=True,  # whether to add a feedforward after each attention layer, suggested by literature to be needed
+        gated_residual=True,  # to use the gated residual to prevent over-smoothing
+        rel_pos_emb=False,  # set to True if the nodes are ordered, default to False
     )
+
+    nodes = torch.randn(batch_size, 128, 256).to("cuda")
+    edges = torch.randn(batch_size, 128, 128, 512).to("cuda")
+    mask = torch.ones(batch_size, 128).bool().to("cuda")
+
+    # nodes = torch.randn(1, 128, 256)
+    # edges = torch.randn(1, 128, 128, 512)
+    # mask = torch.ones(1, 128).bool()
+
+    # nodes, edges = model(nodes, edges, mask=mask)
+
     model = model.to(torch.float32)
     model = model.to("cuda")
 
@@ -172,9 +210,12 @@ def main(
 
     valid_dataset = dataset[valid_idx]
     valid_dataset.data.edge_index = valid_dataset.data.edge_index.to("cuda")
-    valid_dataset.data.edge_attr = valid_dataset.data.edge_attr.to("cuda")
-    valid_dataset.data.x = valid_dataset.data.x.to("cuda")
-    valid_dataset.data.y = valid_dataset.data.y.to("cuda")
+    valid_dataset.data.edge_attr = valid_dataset.data.edge_attr.to(
+        device="cuda", dtype=torch.float32
+    )
+    valid_dataset.data.x = valid_dataset.data.x.to(device="cuda", dtype=torch.float32)
+    valid_dataset.data.y = valid_dataset.data.y.to(device="cuda", dtype=torch.float32)
+
     # valid_dataset = valid_dataset.data.to("cuda")
     # torch.cuda.synchronize()
 
@@ -200,6 +241,9 @@ def main(
         mode=mode,
         ops_save_dir=ops_save_dir,
         model_name=model_name,
+        nodes=nodes,
+        edges=edges,
+        mask=mask,
     )
     endtime = timeit.default_timer()
     valtime = endtime - starttime
@@ -210,8 +254,8 @@ def main(
 if __name__ == "__main__":
 
     # Macros
-    ARCH = "GATv2"  # gTransformer
-    MODE = "batch_size"  # batch_size, width, depth
+    ARCH = "gTransformer"  # gTransformer
+    MODE = "depth"  # batch_size, width, depth
     OPS_SAVE_DIR = "/lus/grand/projects/datascience/gnn-dataflow/profiling_data"
     LATENCY_SAVE_DIR = "./logs"
     RECORD = ProfilerActivity.CUDA  # ProfilerActivity.CUDA, ProfilerActivity.CPU
@@ -225,7 +269,7 @@ if __name__ == "__main__":
     Batch size
     """
     if MODE == "batch_size":
-        batchsizes = [2 ** x for x in range(0, 14)]
+        batchsizes = [2 ** x for x in range(0, 5)]
         for batchsize in batchsizes:  # 10, 12000
 
             valtime, params = main(
@@ -253,7 +297,7 @@ if __name__ == "__main__":
     Parameter width
     """
     if MODE == "width":
-        possible_param_ws = [2 ** x for x in range(10)]
+        possible_param_ws = [2 ** x for x in range(5)]
 
         cnt = 1
 
@@ -284,7 +328,7 @@ if __name__ == "__main__":
     Parameter length
     """
     if MODE == "depth":
-        possible_param_ls = [2 ** x for x in range(10)]
+        possible_param_ls = [2 ** x for x in range(5)]
 
         cnt = 1
 
