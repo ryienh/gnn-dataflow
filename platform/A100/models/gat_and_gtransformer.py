@@ -109,7 +109,6 @@ def evaluate_epoch(
         ) as prof:
             with record_function("model_inference"):
 
-                # for step, X in enumerate(tqdm.tqdm(val_loader)):
                 for step in range(100):
 
                     if step >= (5 + 1 + 4) * 1:
@@ -124,7 +123,7 @@ def evaluate_epoch(
                     prediction = torch.squeeze(logits)
                     # my_loss = torch.nn.functional.mse_loss(prediction, X.y)
 
-                    prof.step()
+                    # prof.step()
 
                     # cntr += 1
                     # if cntr == 10:
@@ -140,8 +139,8 @@ def evaluate_epoch(
     else:
         raise ValueError(f"Warning, invalid mode: {mode}")
 
-    if not os.path.exists(f"{ops_save_dir}/{model_name}"):
-        os.makedirs(f"{ops_save_dir}/{model_name}")
+    # if not os.path.exists(f"{ops_save_dir}/{model_name}"):
+    #     os.makedirs(f"{ops_save_dir}/{model_name}")
 
     prof_type = "cpu" if record == ProfilerActivity.CPU else "cuda"
     df = prof_to_df(prof)
@@ -163,6 +162,7 @@ def main(
     mode,
     ops_save_dir,
     model_name,
+    datatype,
 ):
 
     # model = GATREG(
@@ -186,13 +186,29 @@ def main(
     edges = torch.randn(batch_size, 128, 128, 512).to("cuda")
     mask = torch.ones(batch_size, 128).bool().to("cuda")
 
+    if datatype == "fp16":
+        nodes = torch.randn(batch_size, 128, 256).to(torch.float16)
+        edges = torch.randn(batch_size, 128, 128, 512).to(torch.float16)
+        mask = torch.ones(batch_size, 128).bool().to(torch.float16)
+        nodes = torch.randn(batch_size, 128, 256).to("cuda")
+        edges = torch.randn(batch_size, 128, 128, 512).to("cuda")
+        mask = torch.ones(batch_size, 128).bool().to("cuda")
+
     # nodes = torch.randn(1, 128, 256)
     # edges = torch.randn(1, 128, 128, 512)
     # mask = torch.ones(1, 128).bool()
 
     # nodes, edges = model(nodes, edges, mask=mask)
+    if datatype == "fp32":
+        print("Using fp32")
+        model = model.to(torch.float32)
 
-    model = model.to(torch.float32)
+    elif datatype == "fp16":
+        print("Using fp16")
+        model = model.to(torch.float16)
+    else:
+        print(f"Data type {datatype} is invalid")
+
     model = model.to("cuda")
 
     params = sum(p.numel() for p in model.parameters())
@@ -210,11 +226,26 @@ def main(
 
     valid_dataset = dataset[valid_idx]
     valid_dataset.data.edge_index = valid_dataset.data.edge_index.to("cuda")
-    valid_dataset.data.edge_attr = valid_dataset.data.edge_attr.to(
-        device="cuda", dtype=torch.float32
-    )
-    valid_dataset.data.x = valid_dataset.data.x.to(device="cuda", dtype=torch.float32)
-    valid_dataset.data.y = valid_dataset.data.y.to(device="cuda", dtype=torch.float32)
+    if datatype == "fp32":
+        valid_dataset.data.edge_attr = valid_dataset.data.edge_attr.to(
+            device="cuda", dtype=torch.float32
+        )
+        valid_dataset.data.x = valid_dataset.data.x.to(
+            device="cuda", dtype=torch.float32
+        )
+        valid_dataset.data.y = valid_dataset.data.y.to(
+            device="cuda", dtype=torch.float32
+        )
+    if datatype == "fp316":
+        valid_dataset.data.edge_attr = valid_dataset.data.edge_attr.to(
+            device="cuda", dtype=torch.float16
+        )
+        valid_dataset.data.x = valid_dataset.data.x.to(
+            device="cuda", dtype=torch.float16
+        )
+        valid_dataset.data.y = valid_dataset.data.y.to(
+            device="cuda", dtype=torch.float16
+        )
 
     # valid_dataset = valid_dataset.data.to("cuda")
     # torch.cuda.synchronize()
@@ -254,10 +285,13 @@ def main(
 if __name__ == "__main__":
 
     # Macros
+    DATATYPE = "fp16"
     ARCH = "gTransformer"  # gTransformer
-    MODE = "depth"  # batch_size, width, depth
-    OPS_SAVE_DIR = "/lus/grand/projects/datascience/gnn-dataflow/profiling_data"
-    LATENCY_SAVE_DIR = "./logs"
+    MODE = "batch_size"  # batch_size, width, depth
+    OPS_SAVE_DIR = (
+        f"/lus/grand/projects/datascience/gnn-dataflow/profiling_data/{DATATYPE}"
+    )
+    LATENCY_SAVE_DIR = f"./logs/{DATATYPE}"
     RECORD = ProfilerActivity.CUDA  # ProfilerActivity.CUDA, ProfilerActivity.CPU
 
     torch.manual_seed(0)
@@ -269,7 +303,7 @@ if __name__ == "__main__":
     Batch size
     """
     if MODE == "batch_size":
-        batchsizes = [2 ** x for x in range(0, 5)]
+        batchsizes = [2 ** x for x in range(0, 9)]
         for batchsize in batchsizes:  # 10, 12000
 
             valtime, params = main(
@@ -282,6 +316,7 @@ if __name__ == "__main__":
                 mode=MODE,
                 ops_save_dir=OPS_SAVE_DIR,
                 model_name=ARCH,
+                datatype=DATATYPE,
             )
 
             # traintimes.append(traintime)
@@ -297,7 +332,7 @@ if __name__ == "__main__":
     Parameter width
     """
     if MODE == "width":
-        possible_param_ws = [2 ** x for x in range(5)]
+        possible_param_ws = [2 ** x for x in range(10)]
 
         cnt = 1
 
@@ -310,11 +345,12 @@ if __name__ == "__main__":
                 hidden_dim=param_w,
                 num_conv_layers=4,
                 num_heads=32,
-                batch_size=2048,
+                batch_size=32,  # 2048
                 record=RECORD,
                 mode=MODE,
                 ops_save_dir=OPS_SAVE_DIR,
                 model_name=ARCH,
+                datatype=DATATYPE,
             )
             valtimes.append(valtime)
             params_lst.append(params)
@@ -328,7 +364,7 @@ if __name__ == "__main__":
     Parameter length
     """
     if MODE == "depth":
-        possible_param_ls = [2 ** x for x in range(5)]
+        possible_param_ls = [2 ** x for x in range(10)]
 
         cnt = 1
 
@@ -341,11 +377,12 @@ if __name__ == "__main__":
                 hidden_dim=64,
                 num_conv_layers=param_l,
                 num_heads=32,
-                batch_size=2048,
+                batch_size=32,  # 32
                 record=RECORD,
                 mode=MODE,
                 ops_save_dir=OPS_SAVE_DIR,
                 model_name=ARCH,
+                datatype=DATATYPE,
             )
             # traintimes.append(traintime)
             valtimes.append(valtime)
