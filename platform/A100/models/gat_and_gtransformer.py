@@ -25,10 +25,14 @@ import os
 from graph_transformer_pytorch import GraphTransformer
 
 
-class GATREG(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim, dropout, num_conv_layers, heads):
+class GNNREG(torch.nn.Module):
+    def __init__(
+        self, model_name, input_dim, hidden_dim, dropout, num_conv_layers, heads
+    ):
 
-        super(GATREG, self).__init__()
+        super(GNNREG, self).__init__()
+
+        self.model_name = model_name
 
         self.dropout = dropout
         self.num_layers = num_conv_layers
@@ -49,9 +53,22 @@ class GATREG(torch.nn.Module):
         )
 
     def build_conv_model(self, input_dim, hidden_dim, heads):
-        return TransformerConv(
-            in_channels=input_dim, out_channels=hidden_dim, heads=heads, concat=False
-        )
+        if self.model_name == "gTransformer":
+            return TransformerConv(
+                in_channels=input_dim,
+                out_channels=hidden_dim,
+                heads=heads,
+                concat=False,
+            )
+        elif self.model_name == "GATv2":
+            return GATv2Conv(
+                in_channels=input_dim,
+                out_channels=hidden_dim,
+                heads=heads,
+                concat=False,
+            )
+        else:
+            raise Exception(f"{self.model_name} not a valid model")
 
     def forward(self, data):
         x, edge_index, batch = data.x, data.edge_index, data.batch
@@ -109,7 +126,7 @@ def evaluate_epoch(
         ) as prof:
             with record_function("model_inference"):
 
-                for step in range(100):
+                for step, datum in enumerate(val_loader):
 
                     if step >= (5 + 1 + 4) * 1:
                         break
@@ -118,38 +135,38 @@ def evaluate_epoch(
                     # nodes = X.x
                     # edges = X.edge_attr
 
-                    logits, edges = model(nodes, edges, mask)
+                    logits = model(datum)
 
                     prediction = torch.squeeze(logits)
                     # my_loss = torch.nn.functional.mse_loss(prediction, X.y)
 
-                    # prof.step()
+                    prof.step()
 
                     # cntr += 1
                     # if cntr == 10:
                     #     break
 
-    param = None
-    if mode == "batch_size":
-        param = bs
-    elif mode == "width":
-        param = width
-    elif mode == "depth":
-        param = depth
-    else:
-        raise ValueError(f"Warning, invalid mode: {mode}")
+                param = None
+                if mode == "batch_size":
+                    param = bs
+                elif mode == "width":
+                    param = width
+                elif mode == "depth":
+                    param = depth
+                else:
+                    raise ValueError(f"Warning, invalid mode: {mode}")
 
-    # if not os.path.exists(f"{ops_save_dir}/{model_name}"):
-    #     os.makedirs(f"{ops_save_dir}/{model_name}")
+                # if not os.path.exists(f"{ops_save_dir}/{model_name}"):
+                #     os.makedirs(f"{ops_save_dir}/{model_name}")
 
-    prof_type = "cpu" if record == ProfilerActivity.CPU else "cuda"
-    df = prof_to_df(prof)
-    df.to_csv(
-        f"{ops_save_dir}/{model_name}/{model_name}-{prof_type}-{mode}-{param}.csv",
-        index=False,
-    )
+                prof_type = "cpu" if record == ProfilerActivity.CPU else "cuda"
+                df = prof_to_df(prof)
+                df.to_csv(
+                    f"{ops_save_dir}/{model_name}/{model_name}-{prof_type}-{mode}-{param}.csv",
+                    index=False,
+                )
 
-    return running_loss
+        return running_loss
 
 
 def main(
@@ -165,21 +182,13 @@ def main(
     datatype,
 ):
 
-    # model = GATREG(
-    #     input_dim=node_feature_size,
-    #     hidden_dim=hidden_dim,
-    #     dropout=0,
-    #     num_conv_layers=num_conv_layers,
-    #     heads=num_heads,
-    # )
-
-    model = GraphTransformer(
-        dim=256,
-        depth=num_conv_layers,
-        edge_dim=512,  # optional - if left out, edge dimensions is assumed to be the same as the node dimensions above
-        with_feedforwards=True,  # whether to add a feedforward after each attention layer, suggested by literature to be needed
-        gated_residual=True,  # to use the gated residual to prevent over-smoothing
-        rel_pos_emb=False,  # set to True if the nodes are ordered, default to False
+    model = GNNREG(
+        model_name=model_name,
+        input_dim=node_feature_size,
+        hidden_dim=hidden_dim,
+        dropout=0,
+        num_conv_layers=num_conv_layers,
+        heads=num_heads,
     )
 
     nodes = torch.randn(batch_size, 128, 256).to("cuda")
@@ -187,16 +196,12 @@ def main(
     mask = torch.ones(batch_size, 128).bool().to("cuda")
 
     if datatype == "fp16":
-        nodes = torch.randn(batch_size, 128, 256).to(torch.float16)
-        edges = torch.randn(batch_size, 128, 128, 512).to(torch.float16)
-        mask = torch.ones(batch_size, 128).bool().to(torch.float16)
-        nodes = torch.randn(batch_size, 128, 256).to("cuda")
-        edges = torch.randn(batch_size, 128, 128, 512).to("cuda")
-        mask = torch.ones(batch_size, 128).bool().to("cuda")
-
-    # nodes = torch.randn(1, 128, 256)
-    # edges = torch.randn(1, 128, 128, 512)
-    # mask = torch.ones(1, 128).bool()
+        nodes = nodes.to(torch.float16)
+        edges = edges.to(torch.float16)
+        mask = mask.to(torch.float16)
+        nodes = nodes.to("cuda")
+        edges = edges.to("cuda")
+        mask = mask.to("cuda")
 
     # nodes, edges = model(nodes, edges, mask=mask)
     if datatype == "fp32":
@@ -236,7 +241,7 @@ def main(
         valid_dataset.data.y = valid_dataset.data.y.to(
             device="cuda", dtype=torch.float32
         )
-    if datatype == "fp316":
+    if datatype == "fp16":
         valid_dataset.data.edge_attr = valid_dataset.data.edge_attr.to(
             device="cuda", dtype=torch.float16
         )
@@ -285,9 +290,9 @@ def main(
 if __name__ == "__main__":
 
     # Macros
-    DATATYPE = "fp16"
-    ARCH = "gTransformer"  # gTransformer
-    MODE = "batch_size"  # batch_size, width, depth
+    DATATYPE = "fp32"
+    ARCH = "gTransformer"  # gTransformer, GATv2
+    MODE = "width"  # batch_size, width, depth
     OPS_SAVE_DIR = (
         f"/lus/grand/projects/datascience/gnn-dataflow/profiling_data/{DATATYPE}"
     )
@@ -332,7 +337,7 @@ if __name__ == "__main__":
     Parameter width
     """
     if MODE == "width":
-        possible_param_ws = [2 ** x for x in range(10)]
+        possible_param_ws = [2 ** x for x in range(14)]
 
         cnt = 1
 
