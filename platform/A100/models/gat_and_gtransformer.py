@@ -170,16 +170,16 @@ def evaluate_epoch(
 
 
 def main(
-    node_feature_size,
-    hidden_dim,
-    num_conv_layers,
-    num_heads,
-    batch_size,
-    record,
-    mode,
-    ops_save_dir,
-    model_name,
-    datatype,
+    node_feature_size=9,
+    hidden_dim=64,
+    num_conv_layers=4,
+    num_heads=32,
+    batch_size=32,
+    record=ProfilerActivity.CUDA,
+    mode=None,
+    ops_save_dir=None,
+    model_name=None,
+    datatype=None,
 ):
 
     model = GNNREG(
@@ -312,10 +312,6 @@ if __name__ == "__main__":
         for batchsize in batchsizes:  # 10, 12000
 
             valtime, params = main(
-                node_feature_size=9,
-                hidden_dim=64,
-                num_conv_layers=4,
-                num_heads=32,
                 batch_size=batchsize,
                 record=RECORD,
                 mode=MODE,
@@ -337,7 +333,7 @@ if __name__ == "__main__":
     Parameter width
     """
     if MODE == "width":
-        possible_param_ws = [2 ** x for x in range(14)]
+        possible_param_ws = [2 ** x for x in range(13)]
 
         cnt = 1
 
@@ -346,11 +342,7 @@ if __name__ == "__main__":
             cnt += 1
 
             valtime, params = main(
-                node_feature_size=9,
                 hidden_dim=param_w,
-                num_conv_layers=4,
-                num_heads=32,
-                batch_size=32,  # 2048
                 record=RECORD,
                 mode=MODE,
                 ops_save_dir=OPS_SAVE_DIR,
@@ -378,18 +370,13 @@ if __name__ == "__main__":
             cnt += 1
 
             valtime, params = main(
-                node_feature_size=9,
-                hidden_dim=64,
                 num_conv_layers=param_l,
-                num_heads=32,
-                batch_size=32,  # 32
                 record=RECORD,
                 mode=MODE,
                 ops_save_dir=OPS_SAVE_DIR,
                 model_name=ARCH,
                 datatype=DATATYPE,
             )
-            # traintimes.append(traintime)
             valtimes.append(valtime)
             params_lst.append(params)
 
