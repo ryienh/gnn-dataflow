@@ -96,7 +96,6 @@ class GNNREG(torch.nn.Module):
 def evaluate_epoch(
     val_loader,
     model,
-    device,
     bs,
     width,
     depth,
@@ -111,14 +110,14 @@ def evaluate_epoch(
     model = model.eval()
 
     running_loss = 0
-    predictions = []
-    labels = []
+    valtimes = []
+    valtime_count = 0
 
     # cntr = 0
     with torch.no_grad():
 
         with profile(
-            activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
+            activities=[record],
             record_shapes=False,
             schedule=my_schedule,
             on_trace_ready=torch.profiler.tensorboard_trace_handler("./runs/profiler"),
@@ -129,14 +128,21 @@ def evaluate_epoch(
 
                     if step >= (5 + 1 + 4) * 1:
                         break
+        
+                    starttime = timeit.default_timer()
 
                     logits = model(datum)
 
                     prediction = torch.squeeze(logits)
-                    # my_loss = torch.nn.functional.mse_loss(prediction, X.y)
+                    my_loss = torch.nn.functional.mse_loss(prediction, datum.y)
+
+                    running_loss += my_loss
+
+                    endtime = timeit.default_timer()
+                    valtimes.append(endtime - starttime)
+                    valtime_count += 1
 
                     prof.step()
-
 
                 param = None
                 if mode == "batch_size":
@@ -148,9 +154,6 @@ def evaluate_epoch(
                 else:
                     raise ValueError(f"Warning, invalid mode: {mode}")
 
-                # if not os.path.exists(f"{ops_save_dir}/{model_name}"):
-                #     os.makedirs(f"{ops_save_dir}/{model_name}")
-
                 prof_type = "cpu" if record == ProfilerActivity.CPU else "cuda"
                 df = prof_to_df(prof)
                 df.to_csv(
@@ -158,7 +161,9 @@ def evaluate_epoch(
                     index=False,
                 )
 
-        return running_loss
+        valtime = sum(valtimes)/valtime_count
+
+        return running_loss, valtime
 
 
 def main(
@@ -207,23 +212,23 @@ def main(
     valid_dataset.data.edge_index = valid_dataset.data.edge_index.to("cuda")
     if datatype == "fp32":
         valid_dataset.data.edge_attr = valid_dataset.data.edge_attr.to(
-            device="cuda", dtype=torch.float32
+            device=device, dtype=torch.float32
         )
         valid_dataset.data.x = valid_dataset.data.x.to(
-            device="cuda", dtype=torch.float32
+            device=device, dtype=torch.float32
         )
         valid_dataset.data.y = valid_dataset.data.y.to(
-            device="cuda", dtype=torch.float32
+            device=device, dtype=torch.float32
         )
     if datatype == "fp16":
         valid_dataset.data.edge_attr = valid_dataset.data.edge_attr.to(
-            device="cuda", dtype=torch.float16
+            device=device, dtype=torch.float16
         )
         valid_dataset.data.x = valid_dataset.data.x.to(
-            device="cuda", dtype=torch.float16
+            device=device, dtype=torch.float16
         )
         valid_dataset.data.y = valid_dataset.data.y.to(
-            device="cuda", dtype=torch.float16
+            device=device, dtype=torch.float16
         )
 
     # valid_dataset = valid_dataset.data.to("cuda")
@@ -237,13 +242,9 @@ def main(
         # prefetch_factor=batch_size,
     )
 
-    valtime = None
-
-    starttime = timeit.default_timer()
-    va_loss = evaluate_epoch(
+    running_loss, valtime = evaluate_epoch(
         va_loader,
         model,
-        device,
         bs=batch_size,
         width=hidden_dim,
         depth=num_conv_layers,
@@ -251,9 +252,7 @@ def main(
         mode=mode,
         ops_save_dir=ops_save_dir,
         model_name=model_name,
-    )
-    endtime = timeit.default_timer()
-    valtime = endtime - starttime
+    ) # type: ignore
 
     return valtime, params
 
@@ -288,8 +287,10 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, device, seed):
     Batch size
     """
     if MODE == "batch_size":
-        batchsizes = [2 ** x for x in range(0, 10)]
+        batchsizes = [2 ** x for x in range(0, 11)]
         for batchsize in batchsizes:  # 10, 12000
+
+            print(f"Iteration {x+1}")
 
             valtime, params = main(
                 batch_size=batchsize,
@@ -315,11 +316,9 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, device, seed):
     if MODE == "width":
         possible_param_ws = [2 ** x for x in range(12)]
 
-        cnt = 1
-
         for param_w in possible_param_ws:
-            print(cnt)
-            cnt += 1
+
+            print(f"Iteration {x+1}")
 
             valtime, params = main(
                 hidden_dim=param_w,
@@ -344,11 +343,9 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, device, seed):
     if MODE == "depth":
         possible_param_ls = [2 ** x for x in range(10)]
 
-        cnt = 1
-
         for param_l in possible_param_ls:
-            print(cnt)
-            cnt += 1
+
+            print(f"Iteration {x+1}")
 
             valtime, params = main(
                 num_conv_layers=param_l,
