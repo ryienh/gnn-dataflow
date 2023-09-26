@@ -102,9 +102,6 @@ def evaluate_epoch(
     mode,
     ops_save_dir,
     model_name,
-    nodes,
-    edges,
-    mask,
 ):
 
     my_schedule = schedule(wait=5, warmup=1, active=4)  # repeat=1
@@ -131,10 +128,6 @@ def evaluate_epoch(
                     if step >= (5 + 1 + 4) * 1:
                         break
 
-                    # X.y = X.y.to(torch.float32)
-                    # nodes = X.x
-                    # edges = X.edge_attr
-
                     logits = model(datum)
 
                     prediction = torch.squeeze(logits)
@@ -142,9 +135,6 @@ def evaluate_epoch(
 
                     prof.step()
 
-                    # cntr += 1
-                    # if cntr == 10:
-                    #     break
 
                 param = None
                 if mode == "batch_size":
@@ -180,6 +170,7 @@ def main(
     ops_save_dir=None,
     model_name=None,
     datatype=None,
+    device=None
 ):
 
     model = GNNREG(
@@ -191,19 +182,6 @@ def main(
         heads=num_heads,
     )
 
-    nodes = torch.randn(batch_size, 128, 256).to("cuda")
-    edges = torch.randn(batch_size, 128, 128, 512).to("cuda")
-    mask = torch.ones(batch_size, 128).bool().to("cuda")
-
-    if datatype == "fp16":
-        nodes = nodes.to(torch.float16)
-        edges = edges.to(torch.float16)
-        mask = mask.to(torch.float16)
-        nodes = nodes.to("cuda")
-        edges = edges.to("cuda")
-        mask = mask.to("cuda")
-
-    # nodes, edges = model(nodes, edges, mask=mask)
     if datatype == "fp32":
         print("Using fp32")
         model = model.to(torch.float32)
@@ -269,7 +247,7 @@ def main(
     va_loss = evaluate_epoch(
         va_loader,
         model,
-        "cuda",
+        device,
         bs=batch_size,
         width=hidden_dim,
         depth=num_conv_layers,
@@ -277,9 +255,6 @@ def main(
         mode=mode,
         ops_save_dir=ops_save_dir,
         model_name=model_name,
-        nodes=nodes,
-        edges=edges,
-        mask=mask,
     )
     endtime = timeit.default_timer()
     valtime = endtime - starttime
@@ -292,12 +267,13 @@ if __name__ == "__main__":
     # Macros
     DATATYPE = "fp32"
     ARCH = "gTransformer"  # gTransformer, GATv2
-    MODE = "width"  # batch_size, width, depth
+    MODE = "batch_size"  # batch_size, width, depth
     OPS_SAVE_DIR = (
         f"/lus/grand/projects/datascience/gnn-dataflow/profiling_data/{DATATYPE}"
     )
     LATENCY_SAVE_DIR = f"./logs/{DATATYPE}"
     RECORD = ProfilerActivity.CUDA  # ProfilerActivity.CUDA, ProfilerActivity.CPU
+    DEVICE = "cuda"
 
     torch.manual_seed(0)
 
@@ -308,7 +284,7 @@ if __name__ == "__main__":
     Batch size
     """
     if MODE == "batch_size":
-        batchsizes = [2 ** x for x in range(0, 9)]
+        batchsizes = [2 ** x for x in range(0, 10)]
         for batchsize in batchsizes:  # 10, 12000
 
             valtime, params = main(
@@ -318,9 +294,9 @@ if __name__ == "__main__":
                 ops_save_dir=OPS_SAVE_DIR,
                 model_name=ARCH,
                 datatype=DATATYPE,
+                device=DEVICE
             )
 
-            # traintimes.append(traintime)
             valtimes.append(valtime)
             params_lst.append(params)
 
@@ -333,7 +309,7 @@ if __name__ == "__main__":
     Parameter width
     """
     if MODE == "width":
-        possible_param_ws = [2 ** x for x in range(13)]
+        possible_param_ws = [2 ** x for x in range(12)]
 
         cnt = 1
 
@@ -348,6 +324,7 @@ if __name__ == "__main__":
                 ops_save_dir=OPS_SAVE_DIR,
                 model_name=ARCH,
                 datatype=DATATYPE,
+                device=DEVICE
             )
             valtimes.append(valtime)
             params_lst.append(params)
@@ -376,6 +353,7 @@ if __name__ == "__main__":
                 ops_save_dir=OPS_SAVE_DIR,
                 model_name=ARCH,
                 datatype=DATATYPE,
+                device=DEVICE
             )
             valtimes.append(valtime)
             params_lst.append(params)
