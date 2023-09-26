@@ -24,6 +24,8 @@ from util import prof_to_df
 import os
 from graph_transformer_pytorch import GraphTransformer
 
+import click
+
 
 class GNNREG(torch.nn.Module):
     def __init__(
@@ -183,11 +185,9 @@ def main(
     )
 
     if datatype == "fp32":
-        print("Using fp32")
         model = model.to(torch.float32)
 
     elif datatype == "fp16":
-        print("Using fp16")
         model = model.to(torch.float16)
     else:
         print(f"Data type {datatype} is invalid")
@@ -196,10 +196,6 @@ def main(
 
     params = sum(p.numel() for p in model.parameters())
     print(f"Num parameters: {params}")
-
-    # import pdb
-
-    # pdb.set_trace()
 
     # get dataset, splits
     dataset = PygPCQM4Mv2Dataset(root="./data", smiles2graph=smiles2graph)
@@ -262,20 +258,28 @@ def main(
     return valtime, params
 
 
-if __name__ == "__main__":
-
+# command line
+@click.command()
+@click.option('--datatype', default="fp32", help='Percision used for data and model weights. One of "fp32" or "fp16".')
+@click.option('--arch', default=None, help='Architecture used for benchmarking. One of "gTransformer" or "GATv2".')
+@click.option('--mode', default=None, help='Mode used for benchmarking. One of "batch_size", "width", or "depth".')
+@click.option('--ops_save_dir', default="/lus/grand/projects/datascience/gnn-dataflow/profiling_data/", help='Location to save ops profiles. Path will be appended with "--datatype"')
+@click.option('--latency_save_dir', default="./logs", help='Location to save ops profiles. Path will be appended with "--datatype"')
+@click.option('--device', default="cuda", help='Device used for profiling. One of "cuda" or "cpu".')
+@click.option('--seed', default=0, help='Random seed used. Default is 0.')
+def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, device, seed):
     # Macros
-    DATATYPE = "fp32"
-    ARCH = "gTransformer"  # gTransformer, GATv2
-    MODE = "batch_size"  # batch_size, width, depth
+    DATATYPE = datatype
+    ARCH = arch
+    MODE = mode  # batch_size, width, depth
     OPS_SAVE_DIR = (
-        f"/lus/grand/projects/datascience/gnn-dataflow/profiling_data/{DATATYPE}"
+        f"{ops_save_dir}/{DATATYPE}"
     )
-    LATENCY_SAVE_DIR = f"./logs/{DATATYPE}"
-    RECORD = ProfilerActivity.CUDA  # ProfilerActivity.CUDA, ProfilerActivity.CPU
-    DEVICE = "cuda"
+    LATENCY_SAVE_DIR = f"{latency_save_dir}/{DATATYPE}"
+    DEVICE = device
+    RECORD = ProfilerActivity.CUDA if device.lower() == "cuda" else "cpu"
 
-    torch.manual_seed(0)
+    torch.manual_seed(seed)
 
     valtimes = []
     params_lst = []
@@ -362,3 +366,9 @@ if __name__ == "__main__":
 
         df = pd.DataFrame(results)
         df.to_csv(f"{LATENCY_SAVE_DIR}/A100/{ARCH}/{MODE}.csv")
+
+
+
+
+if __name__ == "__main__":
+    cli()
