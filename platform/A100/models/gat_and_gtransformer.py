@@ -102,6 +102,7 @@ def evaluate_epoch(
     record,
     mode,
     ops_save_dir,
+    profiler_dir,
     model_name,
 ):
 
@@ -120,7 +121,7 @@ def evaluate_epoch(
             activities=[record],
             record_shapes=False,
             schedule=my_schedule,
-            on_trace_ready=torch.profiler.tensorboard_trace_handler("./runs/profiler"),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler(profiler_dir),
         ) as prof:
             with record_function("model_inference"):
 
@@ -175,6 +176,7 @@ def main(
     record=ProfilerActivity.CUDA,
     mode=None,
     ops_save_dir=None,
+    profiler_dir=None
     model_name=None,
     datatype=None,
     device=None
@@ -251,8 +253,9 @@ def main(
         record=record,
         mode=mode,
         ops_save_dir=ops_save_dir,
+        profiler_dir=profiler_dir,
         model_name=model_name,
-    ) # type: ignore
+    )  # type: ignore
 
     return valtime, params
 
@@ -264,9 +267,10 @@ def main(
 @click.option('--mode', default=None, help='Mode used for benchmarking. One of "batch_size", "width", or "depth".')
 @click.option('--ops_save_dir', default="/lus/grand/projects/datascience/gnn-dataflow/profiling_data/", help='Location to save ops profiles. Path will be appended with "--datatype"')
 @click.option('--latency_save_dir', default="./logs", help='Location to save ops profiles. Path will be appended with "--datatype"')
+@click.option('--profiler_dir', default="./runs/profiler", help="Path for profiler results. Can be loaded into tensorboard visualization.")
 @click.option('--device', default="cuda", help='Device used for profiling. One of "cuda" or "cpu".')
 @click.option('--seed', default=0, help='Random seed used. Default is 0.')
-def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, device, seed):
+def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, profiler_dir, device, seed):
     # Macros
     DATATYPE = datatype
     ARCH = arch
@@ -275,6 +279,7 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, device, seed):
         f"{ops_save_dir}/{DATATYPE}"
     )
     LATENCY_SAVE_DIR = f"{latency_save_dir}/{DATATYPE}"
+    PROFILER_DIR = profiler_dir
     DEVICE = device
     RECORD = ProfilerActivity.CUDA if device.lower() == "cuda" else "cpu"
 
@@ -282,21 +287,23 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, device, seed):
 
     valtimes = []
     params_lst = []
+    batch_size_lst = []
 
     """
     Batch size
     """
     if MODE == "batch_size":
-        batchsizes = [2 ** x for x in range(0, 11)]
-        for batchsize in batchsizes:  # 10, 12000
+        batchsizes = [2 ** x for x in range(0, 14)]
+        for idx, batchsize in enumerate(batchsizes):
 
-            print(f"Iteration {x+1}")
+            print(f"Iteration: {idx+1}, batchsize: {batchsize}")
 
             valtime, params = main(
                 batch_size=batchsize,
                 record=RECORD,
                 mode=MODE,
                 ops_save_dir=OPS_SAVE_DIR,
+                profiler_dir=PROFILER_DIR,
                 model_name=ARCH,
                 datatype=DATATYPE,
                 device=DEVICE
@@ -304,8 +311,9 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, device, seed):
 
             valtimes.append(valtime)
             params_lst.append(params)
+            batch_size_lst.append(batchsize)
 
-        results = {"val_times": valtimes, "params": params_lst}
+        results = {"val_times": valtimes, "params": params_lst, "batch_size": batch_size_lst}
 
         df = pd.DataFrame(results)
         df.to_csv(f"{LATENCY_SAVE_DIR}/A100/{ARCH}/{MODE}.csv")
@@ -316,23 +324,25 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, device, seed):
     if MODE == "width":
         possible_param_ws = [2 ** x for x in range(12)]
 
-        for param_w in possible_param_ws:
+        for idx, param_w in enumerate(possible_param_ws):
 
-            print(f"Iteration {x+1}")
+            print(f"Iteration: {idx+1}, param_w: {param_w}")
 
             valtime, params = main(
                 hidden_dim=param_w,
                 record=RECORD,
                 mode=MODE,
                 ops_save_dir=OPS_SAVE_DIR,
+                profiler_dir=PROFILER_DIR,
                 model_name=ARCH,
                 datatype=DATATYPE,
                 device=DEVICE
             )
             valtimes.append(valtime)
             params_lst.append(params)
+            batch_size_lst.append(32)
 
-        results = {"val_times": valtimes, "params": params_lst}
+        results = {"val_times": valtimes, "params": params_lst, "batch_size": batch_size_lst}
 
         df = pd.DataFrame(results)
         df.to_csv(f"{LATENCY_SAVE_DIR}/A100/{ARCH}/{MODE}.csv")
@@ -343,23 +353,25 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, device, seed):
     if MODE == "depth":
         possible_param_ls = [2 ** x for x in range(10)]
 
-        for param_l in possible_param_ls:
+        for idx, param_l in enumerate(possible_param_ls):
 
-            print(f"Iteration {x+1}")
+            print(f"Iteration: {idx+1} param_l: {param_l}")
 
             valtime, params = main(
                 num_conv_layers=param_l,
                 record=RECORD,
                 mode=MODE,
                 ops_save_dir=OPS_SAVE_DIR,
+                profiler_dir=PROFILER_DIR,
                 model_name=ARCH,
                 datatype=DATATYPE,
                 device=DEVICE
             )
             valtimes.append(valtime)
             params_lst.append(params)
+            batch_size_lst.append(32)
 
-        results = {"val_times": valtimes, "params": params_lst}
+        results = {"val_times": valtimes, "params": params_lst, "batch_size": batch_size_lst}
 
         df = pd.DataFrame(results)
         df.to_csv(f"{LATENCY_SAVE_DIR}/A100/{ARCH}/{MODE}.csv")
