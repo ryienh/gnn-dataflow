@@ -176,7 +176,7 @@ def main(
     record=ProfilerActivity.CUDA,
     mode=None,
     ops_save_dir=None,
-    profiler_dir=None
+    profiler_dir=None,
     model_name=None,
     datatype=None,
     device=None
@@ -199,7 +199,7 @@ def main(
     else:
         print(f"Data type {datatype} is invalid")
 
-    model = model.to("cuda")
+    model = model.to(device)
 
     params = sum(p.numel() for p in model.parameters())
     print(f"Num parameters: {params}")
@@ -211,7 +211,7 @@ def main(
     valid_idx = split_dict["valid"]
 
     valid_dataset = dataset[valid_idx]
-    valid_dataset.data.edge_index = valid_dataset.data.edge_index.to("cuda")
+    valid_dataset.data.edge_index = valid_dataset.data.edge_index.to(device)
     if datatype == "fp32":
         valid_dataset.data.edge_attr = valid_dataset.data.edge_attr.to(
             device=device, dtype=torch.float32
@@ -293,7 +293,7 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, profiler_dir, devi
     Batch size
     """
     if MODE == "batch_size":
-        batchsizes = [2 ** x for x in range(0, 14)]
+        batchsizes = [2 ** x for x in range(0, 13)]
         for idx, batchsize in enumerate(batchsizes):
 
             print(f"Iteration: {idx+1}, batchsize: {batchsize}")
@@ -322,7 +322,7 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, profiler_dir, devi
     Parameter width
     """
     if MODE == "width":
-        possible_param_ws = [2 ** x for x in range(12)]
+        possible_param_ws = [2 ** x for x in range(0, 12)]
 
         for idx, param_w in enumerate(possible_param_ws):
 
@@ -351,7 +351,7 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, profiler_dir, devi
     Parameter length
     """
     if MODE == "depth":
-        possible_param_ls = [2 ** x for x in range(10)]
+        possible_param_ls = [2 ** x for x in range(0, 11)]
 
         for idx, param_l in enumerate(possible_param_ls):
 
