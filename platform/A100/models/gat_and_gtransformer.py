@@ -264,7 +264,7 @@ def main(
 @click.command()
 @click.option('--datatype', default="fp32", help='Percision used for data and model weights. One of "fp32" or "fp16".')
 @click.option('--arch', default=None, help='Architecture used for benchmarking. One of "gTransformer" or "GATv2".')
-@click.option('--mode', default=None, help='Mode used for benchmarking. One of "batch_size", "width", or "depth".')
+@click.option('--mode', default=None, help='Mode used for benchmarking. One of "batch_size", "width", "depth", or "all".')
 @click.option('--ops_save_dir', default="/lus/grand/projects/datascience/gnn-dataflow/profiling_data/", help='Location to save ops profiles. Path will be appended with "--datatype"')
 @click.option('--latency_save_dir', default="./logs", help='Location to save ops profiles. Path will be appended with "--datatype"')
 @click.option('--profiler_dir', default="./runs/profiler", help="Path for profiler results. Can be loaded into tensorboard visualization.")
@@ -289,10 +289,14 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, profiler_dir, devi
     params_lst = []
     batch_size_lst = []
 
+    if MODE == "all":
+        print(f"Running arch {arch} in all modes: 'batch_size', 'width', 'depth'")
+
     """
     Batch size
     """
-    if MODE == "batch_size":
+    if MODE in ["all", "batch_size"]:
+        print(f"Running mode {MODE}")
         batchsizes = [2 ** x for x in range(0, 13)]
         for idx, batchsize in enumerate(batchsizes):
 
@@ -321,7 +325,8 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, profiler_dir, devi
     """
     Parameter width
     """
-    if MODE == "width":
+    if MODE in ["all", "width"]:
+        print(f"Running mode {MODE}")
         possible_param_ws = [2 ** x for x in range(0, 12)]
 
         for idx, param_w in enumerate(possible_param_ws):
@@ -350,7 +355,8 @@ def cli(datatype, arch, mode, ops_save_dir, latency_save_dir, profiler_dir, devi
     """
     Parameter length
     """
-    if MODE == "depth":
+    if MODE in ["all", "depth"]:
+        print(f"Running mode {MODE}")
         possible_param_ls = [2 ** x for x in range(0, 11)]
 
         for idx, param_l in enumerate(possible_param_ls):
