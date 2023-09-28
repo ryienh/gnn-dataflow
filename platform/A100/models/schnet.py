@@ -261,7 +261,7 @@ def cli(datatype, mode, ops_save_dir, latency_save_dir, profiler_dir, device, se
 
     if MODE in ["all", "num_interactions"]:
         # LINEAR
-        possible_param_ninteractions = [10 * x for x in range(1, 100)]  # TODO: tune
+        possible_param_ninteractions = [10 * x for x in range(1, 40)]  # technically have not hit upper bound here
 
         for idx, param_i in enumerate(possible_param_ninteractions):
 
@@ -293,7 +293,7 @@ def cli(datatype, mode, ops_save_dir, latency_save_dir, profiler_dir, device, se
     batch_size_lst = []
 
     if MODE in ["all", "max_num_neighbors"]:
-        possible_param_mnn = [2 ** x for x in range(0, 10)]  # TODO: tune
+        possible_param_mnn = [2 ** x for x in range(0, 23)]
 
         for idx, param_mnn in enumerate(possible_param_mnn):
 
