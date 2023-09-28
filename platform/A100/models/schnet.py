@@ -73,13 +73,11 @@ def validate(
 
                 for target in range(12):
 
-                    _, datasets = SchNet.from_qm9_pretrained(path, dataset, target)  # model
-                    _, _, test_dataset = datasets
                     # TODO: cast dataset to datatype
                     if datatype != "fp32":
                         raise ValueError("Sorry, only fp32 supported for now")
 
-                    loader = DataLoader(test_dataset, batch_size=batch_size)
+                    loader = DataLoader(dataset, batch_size=batch_size)
 
                     maes = []
                     for step, data in enumerate(loader):
@@ -140,7 +138,7 @@ def validate(
 @click.option('--device', default="cuda", help='Device used for profiling. One of "cuda" or "cpu".')
 @click.option('--seed', default=0, help='Random seed used. Default is 0.')
 def cli(datatype, mode, ops_save_dir, latency_save_dir, profiler_dir, device, seed):
-    
+
     # Macros
     DATATYPE = datatype
     MODE = mode  # batch_size, width, depth
@@ -161,8 +159,12 @@ def cli(datatype, mode, ops_save_dir, latency_save_dir, profiler_dir, device, se
     """
     Batch size
     """
+    valtimes = []
+    params_lst = []
+    batch_size_lst = []
+
     if MODE == "batch_size":
-        batchsizes = [2 ** x for x in range(0, 13)]  # TODO: tune
+        batchsizes = [2 ** x for x in range(0, 14)]
         for idx, batchsize in enumerate(batchsizes):
 
             print(f"Iteration: {idx+1}, batchsize: {batchsize}")
@@ -189,8 +191,12 @@ def cli(datatype, mode, ops_save_dir, latency_save_dir, profiler_dir, device, se
     """
     Hidden channels
     """
+    valtimes = []
+    params_lst = []
+    batch_size_lst = []
+
     if MODE == "hidden_channels":
-        possible_param_ws = [2 ** x for x in range(0, 12)]  # TODO: tune
+        possible_param_ws = [2 ** x for x in range(1, 16)]
 
         for idx, param_w in enumerate(possible_param_ws):
 
@@ -217,8 +223,12 @@ def cli(datatype, mode, ops_save_dir, latency_save_dir, profiler_dir, device, se
     """
     Num filters
     """
+    valtimes = []
+    params_lst = []
+    batch_size_lst = []
+
     if MODE == "num_filters":
-        possible_param_nfilters = [2 ** x for x in range(0, 12)]  # TODO: tune
+        possible_param_nfilters = [2 ** x for x in range(0, 16)]
 
         for idx, param_f in enumerate(possible_param_nfilters):
 
@@ -245,9 +255,13 @@ def cli(datatype, mode, ops_save_dir, latency_save_dir, profiler_dir, device, se
     """
     Num interactions
     """
+    valtimes = []
+    params_lst = []
+    batch_size_lst = []
+
     if MODE == "num_interactions":
         # LINEAR
-        possible_param_ninteractions = [x for x in range(0, 100)]  # TODO: tune
+        possible_param_ninteractions = [10 * x for x in range(1, 100)]  # TODO: tune
 
         for idx, param_i in enumerate(possible_param_ninteractions):
 
@@ -274,6 +288,10 @@ def cli(datatype, mode, ops_save_dir, latency_save_dir, profiler_dir, device, se
     """
     Max num neighbors
     """
+    valtimes = []
+    params_lst = []
+    batch_size_lst = []
+
     if MODE == "max_num_neighbors":
         possible_param_mnn = [2 ** x for x in range(0, 10)]  # TODO: tune
 
@@ -302,5 +320,3 @@ def cli(datatype, mode, ops_save_dir, latency_save_dir, profiler_dir, device, se
 
 if __name__ == "__main__":
     cli()
-
-    
