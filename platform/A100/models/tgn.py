@@ -5,11 +5,13 @@ import click
 import os.path as osp
 import timeit
 import pandas as pd
+import tqdm
 
 import torch
 from sklearn.metrics import average_precision_score, roc_auc_score
 from torch.nn import Linear
 from torch.profiler import profile, record_function, ProfilerActivity, schedule
+from util import prof_to_df
 
 from torch_geometric.datasets import JODIEDataset
 from torch_geometric.loader import TemporalDataLoader
@@ -34,7 +36,7 @@ def validate(
     device=None,
     seed=None
 ):
-    
+
     if datatype != "fp32":
         raise ValueError("Sorry, profiling only implemented for fp32 at this time.")
 
@@ -56,11 +58,6 @@ def validate(
     )
     val_loader = TemporalDataLoader(
         val_data,
-        batch_size=batch_size,
-        neg_sampling_ratio=1.0,
-    )
-    test_loader = TemporalDataLoader(
-        test_data,
         batch_size=batch_size,
         neg_sampling_ratio=1.0,
     )
@@ -127,7 +124,13 @@ def validate(
         neighbor_loader.reset_state()  # Start with an empty graph.
 
         total_loss = 0
-        for batch in train_loader:
+        print("Begin one epoch of tgn training")
+        for batch in tqdm.tqdm(train_loader):
+
+            # Not necessary to do full epoch of training
+            # if idx >= 9:
+            #     break
+
             optimizer.zero_grad()
             batch = batch.to(device)
 
@@ -153,10 +156,16 @@ def validate(
             memory.detach()
             total_loss += float(loss) * batch.num_events
 
+        print("End one epoch of tgn training")
+
         return total_loss / train_data.num_events
 
     @torch.no_grad()
     def test(loader):
+
+        # import pdb
+        # pdb.set_trace()
+
         memory.eval()
         gnn.eval()
         link_pred.eval()
@@ -188,7 +197,7 @@ def validate(
 
                     for step, data in enumerate(loader):
 
-                        if step >= (5 + 1 + 4) * 1:
+                        if step >= 4:  # FIXME: ask filippo about this
                             break
 
                         starttime = timeit.default_timer()
@@ -206,8 +215,7 @@ def validate(
 
                         y_pred = torch.cat([pos_out, neg_out], dim=0).sigmoid().cpu()
                         y_true = torch.cat(
-                            [torch.ones(pos_out.size(0)),
-                            torch.zeros(neg_out.size(0))], dim=0)
+                            [torch.ones(pos_out.size(0)), torch.zeros(neg_out.size(0))], dim=0)
 
                         aps.append(average_precision_score(y_true, y_pred))
                         aucs.append(roc_auc_score(y_true, y_pred))
@@ -220,7 +228,7 @@ def validate(
                         valtime_count += 1
 
                         prof.step()
-                    
+
                     param = None
                     if mode == "batch_size":
                         param = batch_size
@@ -239,7 +247,7 @@ def validate(
                         f"{ops_save_dir}/tgn/tgn-{prof_type}-{mode}-{param}.csv",
                         index=False,
                     )
-        
+
         valtime = sum(valtimes)/valtime_count
         return valtime, params
 
@@ -248,7 +256,6 @@ def validate(
         print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}')
         valtime, params = test(val_loader)
         return valtime, params
-
 
 
 @click.command()
@@ -285,7 +292,7 @@ def cli(datatype, mode, ops_save_dir, latency_save_dir, profiler_dir, device, se
     Batch size
     """
     if MODE in ["all", "batch_size"]:
-        batchsizes = [2 ** x for x in range(0, 14)]  # TODO: tune
+        batchsizes = [2 ** x for x in range(1, 14)]  # TODO: tune
         for idx, batchsize in enumerate(batchsizes):
 
             print(f"Iteration: {idx+1}, batchsize: {batchsize}")
