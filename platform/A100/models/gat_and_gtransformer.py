@@ -145,22 +145,22 @@ def evaluate_epoch(
 
                     prof.step()
 
-                param = None
-                if mode == "batch_size":
-                    param = bs
-                elif mode == "width":
-                    param = width
-                elif mode == "depth":
-                    param = depth
-                else:
-                    raise ValueError(f"Warning, invalid mode: {mode}")
+        param = None
+        if mode == "batch_size":
+            param = bs
+        elif mode == "width":
+            param = width
+        elif mode == "depth":
+            param = depth
+        else:
+            raise ValueError(f"Warning, invalid mode: {mode}")
 
-                prof_type = "cpu" if record == ProfilerActivity.CPU else "cuda"
-                df = prof_to_df(prof)
-                df.to_csv(
-                    f"{ops_save_dir}/{model_name}/{model_name}-{prof_type}-{mode}-{param}.csv",
-                    index=False,
-                )
+        prof_type = "cpu" if record == ProfilerActivity.CPU else "cuda"
+        df = prof_to_df(prof)
+        df.to_csv(
+            f"{ops_save_dir}/{model_name}/{model_name}-{prof_type}-{mode}-{param}.csv",
+            index=False,
+        )
 
         valtime = sum(valtimes)/valtime_count
 
